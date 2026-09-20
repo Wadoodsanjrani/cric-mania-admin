@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -10,35 +9,26 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _loading = false;
   String? _error;
 
-  Future<void> _login() async {
+  void _login() {
     setState(() {
       _loading = true;
       _error = null;
     });
 
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailCtrl.text.trim(),
-        password: _passCtrl.text.trim(),
+    if (_passCtrl.text.trim() == '1996') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => DashboardScreen()),
       );
-
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => DashboardScreen()),
-        );
-      }
-    } catch (e) {
+    } else {
       setState(() {
-        _error = 'Login failed: ${e.toString()}';
+        _error = 'Galat password!';
+        _loading = false;
       });
-    } finally {
-      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -66,15 +56,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 8),
                   const Text('Admin Login', style: TextStyle(color: Colors.grey)),
                   const SizedBox(height: 24),
-                  TextField(
-                    controller: _emailCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.email),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
                   TextField(
                     controller: _passCtrl,
                     obscureText: true,
