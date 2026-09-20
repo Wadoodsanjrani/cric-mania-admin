@@ -17,10 +17,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
   String _team2 = '';
   String _format = 'T20I';
   String _status = 'LIVE';
-  String _score1 = '';
-  String _score2 = '';
 
-  // Batting/Bowling data
   List<Map<String, TextEditingController>> _team1Batting = [];
   List<Map<String, TextEditingController>> _team2Bowling = [];
   List<Map<String, TextEditingController>> _team2Batting = [];
@@ -38,6 +35,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
   Map<String, TextEditingController> _batterCtrl() {
     return {
       'name': TextEditingController(),
+      'howOut': TextEditingController(),
       'r': TextEditingController(),
       'b': TextEditingController(),
       'fours': TextEditingController(),
@@ -75,6 +73,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
         for (var b in data['team1Batting']) {
           var c = _batterCtrl();
           c['name']!.text = b['name'] ?? '';
+          c['howOut']!.text = b['howOut'] ?? '';
           c['r']!.text = b['r'] ?? '';
           c['b']!.text = b['b'] ?? '';
           c['fours']!.text = b['4s'] ?? '';
@@ -102,6 +101,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
         for (var b in data['team2Batting']) {
           var c = _batterCtrl();
           c['name']!.text = b['name'] ?? '';
+          c['howOut']!.text = b['howOut'] ?? '';
           c['r']!.text = b['r'] ?? '';
           c['b']!.text = b['b'] ?? '';
           c['fours']!.text = b['4s'] ?? '';
@@ -134,6 +134,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
         .where((b) => b['name']!.text.trim().isNotEmpty)
         .map((b) => {
               'name': b['name']!.text.trim(),
+              'howOut': b['howOut']!.text.trim(),
               'r': b['r']!.text.trim(),
               'b': b['b']!.text.trim(),
               '4s': b['fours']!.text.trim(),
@@ -157,6 +158,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
         .where((b) => b['name']!.text.trim().isNotEmpty)
         .map((b) => {
               'name': b['name']!.text.trim(),
+              'howOut': b['howOut']!.text.trim(),
               'r': b['r']!.text.trim(),
               'b': b['b']!.text.trim(),
               '4s': b['fours']!.text.trim(),
@@ -191,11 +193,13 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
       await FirebaseFirestore.instance
           .collection('matches')
           .doc(widget.matchId)
-          .update(data);
+          .set(data, SetOptions(merge: true));
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Match updated!'), backgroundColor: Colors.green),
+          const SnackBar(
+              content: Text('Match updated!'),
+              backgroundColor: Colors.green),
         );
       }
     } catch (e) {
@@ -224,7 +228,8 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('$_team1 vs $_team2', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text('$_team1 vs $_team2',
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           Text('Format: $_format', style: const TextStyle(color: Colors.grey)),
           const SizedBox(height: 16),
 
@@ -235,7 +240,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           _sectionTitle('Status'),
           Wrap(
             spacing: 8,
-            children: ['LIVE', 'UPCOMING', 'RESULT']
+            children: ['LIVE', 'RESULT']
                 .map((s) => ChoiceChip(
                       label: Text(s),
                       selected: _status == s,
@@ -285,7 +290,9 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
             onPressed: _saving ? null : _save,
             child: _saving
                 ? const CircularProgressIndicator(color: Colors.white)
-                : const Text('SAVE UPDATES', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                : const Text('SAVE UPDATES',
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold)),
           ),
           const SizedBox(height: 32),
         ],
@@ -297,7 +304,10 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8, top: 8),
       child: Text(title,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0A1931))),
+          style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF0A1931))),
     );
   }
 
@@ -306,7 +316,8 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
       padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
         controller: ctrl,
-        decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
+        decoration: InputDecoration(
+            labelText: label, border: const OutlineInputBorder()),
       ),
     );
   }
@@ -317,34 +328,91 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: const Row(
         children: [
-          Expanded(flex: 3, child: Text('Name', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-          Expanded(child: Text('R', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-          Expanded(child: Text('B', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-          Expanded(child: Text('4s', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-          Expanded(child: Text('6s', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-          Expanded(child: Text('SR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-          SizedBox(width: 36),
+          Expanded(
+              flex: 3,
+              child: Text('Name',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 11))),
+          Expanded(
+              flex: 3,
+              child: Text('How Out',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 11))),
+          Expanded(
+              child: Text('R',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 11))),
+          Expanded(
+              child: Text('B',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 11))),
+          Expanded(
+              child: Text('4s',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 11))),
+          Expanded(
+              child: Text('6s',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 11))),
+          Expanded(
+              child: Text('SR',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 11))),
+          SizedBox(width: 32),
         ],
       ),
     );
   }
 
-  Widget _battingRow(int index, Map<String, TextEditingController> c, List list) {
+  Widget _battingRow(
+      int index, Map<String, TextEditingController> c, List list) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Expanded(flex: 3, child: TextField(controller: c['name'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 4),
-          Expanded(child: TextField(controller: c['r'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 4),
-          Expanded(child: TextField(controller: c['b'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 4),
-          Expanded(child: TextField(controller: c['fours'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 4),
-          Expanded(child: TextField(controller: c['sixes'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 4),
-          Expanded(child: TextField(controller: c['sr'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
+          Expanded(
+              flex: 3,
+              child: TextField(
+                  controller: c['name'],
+                  decoration: const InputDecoration(
+                      isDense: true, border: OutlineInputBorder()))),
+          const SizedBox(width: 2),
+          Expanded(
+              flex: 3,
+              child: TextField(
+                  controller: c['howOut'],
+                  decoration: const InputDecoration(
+                      isDense: true, border: OutlineInputBorder()))),
+          const SizedBox(width: 2),
+          Expanded(
+              child: TextField(
+                  controller: c['r'],
+                  decoration: const InputDecoration(
+                      isDense: true, border: OutlineInputBorder()))),
+          const SizedBox(width: 2),
+          Expanded(
+              child: TextField(
+                  controller: c['b'],
+                  decoration: const InputDecoration(
+                      isDense: true, border: OutlineInputBorder()))),
+          const SizedBox(width: 2),
+          Expanded(
+              child: TextField(
+                  controller: c['fours'],
+                  decoration: const InputDecoration(
+                      isDense: true, border: OutlineInputBorder()))),
+          const SizedBox(width: 2),
+          Expanded(
+              child: TextField(
+                  controller: c['sixes'],
+                  decoration: const InputDecoration(
+                      isDense: true, border: OutlineInputBorder()))),
+          const SizedBox(width: 2),
+          Expanded(
+              child: TextField(
+                  controller: c['sr'],
+                  decoration: const InputDecoration(
+                      isDense: true, border: OutlineInputBorder()))),
           IconButton(
             icon: const Icon(Icons.delete, color: Colors.red, size: 20),
             onPressed: () => setState(() => list.removeAt(index)),
@@ -360,31 +428,69 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: const Row(
         children: [
-          Expanded(flex: 3, child: Text('Name', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-          Expanded(child: Text('O', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-          Expanded(child: Text('M', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-          Expanded(child: Text('R', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-          Expanded(child: Text('W', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-          SizedBox(width: 36),
+          Expanded(
+              flex: 3,
+              child: Text('Name',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 11))),
+          Expanded(
+              child: Text('O',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 11))),
+          Expanded(
+              child: Text('M',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 11))),
+          Expanded(
+              child: Text('R',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 11))),
+          Expanded(
+              child: Text('W',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 11))),
+          SizedBox(width: 32),
         ],
       ),
     );
   }
 
-  Widget _bowlingRow(int index, Map<String, TextEditingController> c, List list) {
+  Widget _bowlingRow(
+      int index, Map<String, TextEditingController> c, List list) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Expanded(flex: 3, child: TextField(controller: c['name'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 4),
-          Expanded(child: TextField(controller: c['o'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 4),
-          Expanded(child: TextField(controller: c['m'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 4),
-          Expanded(child: TextField(controller: c['r'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 4),
-          Expanded(child: TextField(controller: c['w'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
+          Expanded(
+              flex: 3,
+              child: TextField(
+                  controller: c['name'],
+                  decoration: const InputDecoration(
+                      isDense: true, border: OutlineInputBorder()))),
+          const SizedBox(width: 2),
+          Expanded(
+              child: TextField(
+                  controller: c['o'],
+                  decoration: const InputDecoration(
+                      isDense: true, border: OutlineInputBorder()))),
+          const SizedBox(width: 2),
+          Expanded(
+              child: TextField(
+                  controller: c['m'],
+                  decoration: const InputDecoration(
+                      isDense: true, border: OutlineInputBorder()))),
+          const SizedBox(width: 2),
+          Expanded(
+              child: TextField(
+                  controller: c['r'],
+                  decoration: const InputDecoration(
+                      isDense: true, border: OutlineInputBorder()))),
+          const SizedBox(width: 2),
+          Expanded(
+              child: TextField(
+                  controller: c['w'],
+                  decoration: const InputDecoration(
+                      isDense: true, border: OutlineInputBorder()))),
           IconButton(
             icon: const Icon(Icons.delete, color: Colors.red, size: 20),
             onPressed: () => setState(() => list.removeAt(index)),
@@ -401,7 +507,8 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
         icon: const Icon(Icons.add),
         label: Text(label),
         onPressed: onPressed,
-        style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF0A1931)),
+        style: OutlinedButton.styleFrom(
+            foregroundColor: const Color(0xFF0A1931)),
       ),
     );
   }
