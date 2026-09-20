@@ -17,12 +17,18 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
   final _score2Ctrl = TextEditingController();
   final _resultCtrl = TextEditingController();
   String _status = 'LIVE';
-  String _format = 'T20I';
   bool _loading = false;
 
+  // Team 1 Batting
   List<Map<String, TextEditingController>> _team1Batting = [];
+
+  // Team 2 Bowling
   List<Map<String, TextEditingController>> _team2Bowling = [];
+
+  // Team 2 Batting
   List<Map<String, TextEditingController>> _team2Batting = [];
+
+  // Team 1 Bowling
   List<Map<String, TextEditingController>> _team1Bowling = [];
 
   @override
@@ -31,9 +37,10 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
     if (widget.matchId != null) _loadMatch();
   }
 
-  Map<String, TextEditingController> _createBatterControllers() {
+  Map<String, TextEditingController> _batterCtrl() {
     return {
       'name': TextEditingController(),
+      'howOut': TextEditingController(),
       'r': TextEditingController(),
       'b': TextEditingController(),
       'fours': TextEditingController(),
@@ -42,7 +49,7 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
     };
   }
 
-  Map<String, TextEditingController> _createBowlerControllers() {
+  Map<String, TextEditingController> _bowlerCtrl() {
     return {
       'name': TextEditingController(),
       'o': TextEditingController(),
@@ -67,7 +74,6 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
         _score2Ctrl.text = data['score2'] ?? '';
         _resultCtrl.text = data['result'] ?? '';
         _status = data['status'] ?? 'LIVE';
-        _format = data['format'] ?? 'T20I';
       });
     }
   }
@@ -75,10 +81,11 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
   Future<void> _save() async {
     setState(() => _loading = true);
 
-    List<Map<String, String>> team1BattingData = _team1Batting
+    var team1BattingData = _team1Batting
         .where((b) => b['name']!.text.trim().isNotEmpty)
         .map((b) => {
               'name': b['name']!.text.trim(),
+              'howOut': b['howOut']!.text.trim(),
               'r': b['r']!.text.trim(),
               'b': b['b']!.text.trim(),
               '4s': b['fours']!.text.trim(),
@@ -87,7 +94,7 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
             })
         .toList();
 
-    List<Map<String, String>> team2BowlingData = _team2Bowling
+    var team2BowlingData = _team2Bowling
         .where((b) => b['name']!.text.trim().isNotEmpty)
         .map((b) => {
               'name': b['name']!.text.trim(),
@@ -98,10 +105,11 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
             })
         .toList();
 
-    List<Map<String, String>> team2BattingData = _team2Batting
+    var team2BattingData = _team2Batting
         .where((b) => b['name']!.text.trim().isNotEmpty)
         .map((b) => {
               'name': b['name']!.text.trim(),
+              'howOut': b['howOut']!.text.trim(),
               'r': b['r']!.text.trim(),
               'b': b['b']!.text.trim(),
               '4s': b['fours']!.text.trim(),
@@ -110,7 +118,7 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
             })
         .toList();
 
-    List<Map<String, String>> team1BowlingData = _team1Bowling
+    var team1BowlingData = _team1Bowling
         .where((b) => b['name']!.text.trim().isNotEmpty)
         .map((b) => {
               'name': b['name']!.text.trim(),
@@ -129,7 +137,6 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
       'score2': _score2Ctrl.text.trim(),
       'result': _resultCtrl.text.trim(),
       'status': _status,
-      'format': _format,
       'team1Batting': team1BattingData,
       'team2Bowling': team2BowlingData,
       'team2Batting': team2BattingData,
@@ -177,23 +184,12 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
           _field('Score 1', _score1Ctrl),
           _field('Score 2', _score2Ctrl),
           _field('Result', _resultCtrl),
-          const SizedBox(height: 12),
-          _sectionTitle('Match Format'),
-          Wrap(
-            spacing: 8,
-            children: ['T20I', 'ODI', 'TEST']
-                .map((f) => ChoiceChip(
-                      label: Text(f),
-                      selected: _format == f,
-                      onSelected: (_) => setState(() => _format = f),
-                    ))
-                .toList(),
-          ),
+
           const SizedBox(height: 12),
           _sectionTitle('Status'),
           Wrap(
             spacing: 8,
-            children: ['LIVE', 'UPCOMING', 'RESULT']
+            children: ['LIVE', 'RESULT']
                 .map((s) => ChoiceChip(
                       label: Text(s),
                       selected: _status == s,
@@ -201,42 +197,39 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
                     ))
                 .toList(),
           ),
+
           const SizedBox(height: 24),
           _sectionTitle('${_team1Ctrl.text.isEmpty ? "Team 1" : _team1Ctrl.text} - Batting'),
           _battingHeader(),
-          ..._team1Batting.asMap().entries.map((entry) {
-            return _battingRow(entry.key, entry.value, _team1Batting);
-          }),
+          ..._team1Batting.asMap().entries.map((e) => _battingRow(e.key, e.value, _team1Batting)),
           _addButton('Add Batter', () {
-            setState(() => _team1Batting.add(_createBatterControllers()));
+            setState(() => _team1Batting.add(_batterCtrl()));
           }),
+
           const SizedBox(height: 24),
           _sectionTitle('${_team2Ctrl.text.isEmpty ? "Team 2" : _team2Ctrl.text} - Bowling'),
           _bowlingHeader(),
-          ..._team2Bowling.asMap().entries.map((entry) {
-            return _bowlingRow(entry.key, entry.value, _team2Bowling);
-          }),
+          ..._team2Bowling.asMap().entries.map((e) => _bowlingRow(e.key, e.value, _team2Bowling)),
           _addButton('Add Bowler', () {
-            setState(() => _team2Bowling.add(_createBowlerControllers()));
+            setState(() => _team2Bowling.add(_bowlerCtrl()));
           }),
+
           const SizedBox(height: 24),
           _sectionTitle('${_team2Ctrl.text.isEmpty ? "Team 2" : _team2Ctrl.text} - Batting'),
           _battingHeader(),
-          ..._team2Batting.asMap().entries.map((entry) {
-            return _battingRow(entry.key, entry.value, _team2Batting);
-          }),
+          ..._team2Batting.asMap().entries.map((e) => _battingRow(e.key, e.value, _team2Batting)),
           _addButton('Add Batter', () {
-            setState(() => _team2Batting.add(_createBatterControllers()));
+            setState(() => _team2Batting.add(_batterCtrl()));
           }),
+
           const SizedBox(height: 24),
           _sectionTitle('${_team1Ctrl.text.isEmpty ? "Team 1" : _team1Ctrl.text} - Bowling'),
           _bowlingHeader(),
-          ..._team1Bowling.asMap().entries.map((entry) {
-            return _bowlingRow(entry.key, entry.value, _team1Bowling);
-          }),
+          ..._team1Bowling.asMap().entries.map((e) => _bowlingRow(e.key, e.value, _team1Bowling)),
           _addButton('Add Bowler', () {
-            setState(() => _team1Bowling.add(_createBowlerControllers()));
+            setState(() => _team1Bowling.add(_bowlerCtrl()));
           }),
+
           const SizedBox(height: 32),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -260,10 +253,8 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
   Widget _sectionTitle(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8, top: 8),
-      child: Text(
-        title,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0A1931)),
-      ),
+      child: Text(title,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0A1931))),
     );
   }
 
@@ -272,10 +263,7 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
       padding: const EdgeInsets.only(bottom: 12),
       child: TextField(
         controller: ctrl,
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-        ),
+        decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
       ),
     );
   }
@@ -286,40 +274,37 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: const Row(
         children: [
-          Expanded(flex: 3, child: Text('Name', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-          Expanded(child: Text('R', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-          Expanded(child: Text('B', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-          Expanded(child: Text('4s', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-          Expanded(child: Text('6s', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-          Expanded(child: Text('SR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-          SizedBox(width: 36),
+          Expanded(flex: 3, child: Text('Name', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+          Expanded(flex: 3, child: Text('How Out', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+          Expanded(child: Text('R', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+          Expanded(child: Text('B', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+          Expanded(child: Text('4s', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+          Expanded(child: Text('6s', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+          Expanded(child: Text('SR', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+          SizedBox(width: 32),
         ],
       ),
     );
   }
 
-  Widget _battingRow(int index, Map<String, TextEditingController> ctrl, List list) {
+  Widget _battingRow(int index, Map<String, TextEditingController> c, List list) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Expanded(
-            flex: 3,
-            child: TextField(
-              controller: ctrl['name'],
-              decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
-            ),
-          ),
-          const SizedBox(width: 4),
-          Expanded(child: TextField(controller: ctrl['r'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 4),
-          Expanded(child: TextField(controller: ctrl['b'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 4),
-          Expanded(child: TextField(controller: ctrl['fours'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 4),
-          Expanded(child: TextField(controller: ctrl['sixes'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 4),
-          Expanded(child: TextField(controller: ctrl['sr'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
+          Expanded(flex: 3, child: TextField(controller: c['name'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
+          const SizedBox(width: 2),
+          Expanded(flex: 3, child: TextField(controller: c['howOut'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
+          const SizedBox(width: 2),
+          Expanded(child: TextField(controller: c['r'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
+          const SizedBox(width: 2),
+          Expanded(child: TextField(controller: c['b'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
+          const SizedBox(width: 2),
+          Expanded(child: TextField(controller: c['fours'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
+          const SizedBox(width: 2),
+          Expanded(child: TextField(controller: c['sixes'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
+          const SizedBox(width: 2),
+          Expanded(child: TextField(controller: c['sr'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
           IconButton(
             icon: const Icon(Icons.delete, color: Colors.red, size: 20),
             onPressed: () => setState(() => list.removeAt(index)),
@@ -335,37 +320,31 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       child: const Row(
         children: [
-          Expanded(flex: 3, child: Text('Name', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-          Expanded(child: Text('O', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-          Expanded(child: Text('M', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-          Expanded(child: Text('R', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-          Expanded(child: Text('W', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-          SizedBox(width: 36),
+          Expanded(flex: 3, child: Text('Name', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+          Expanded(child: Text('O', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+          Expanded(child: Text('M', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+          Expanded(child: Text('R', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+          Expanded(child: Text('W', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+          SizedBox(width: 32),
         ],
       ),
     );
   }
 
-  Widget _bowlingRow(int index, Map<String, TextEditingController> ctrl, List list) {
+  Widget _bowlingRow(int index, Map<String, TextEditingController> c, List list) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          Expanded(
-            flex: 3,
-            child: TextField(
-              controller: ctrl['name'],
-              decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
-            ),
-          ),
-          const SizedBox(width: 4),
-          Expanded(child: TextField(controller: ctrl['o'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 4),
-          Expanded(child: TextField(controller: ctrl['m'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 4),
-          Expanded(child: TextField(controller: ctrl['r'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 4),
-          Expanded(child: TextField(controller: ctrl['w'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
+          Expanded(flex: 3, child: TextField(controller: c['name'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
+          const SizedBox(width: 2),
+          Expanded(child: TextField(controller: c['o'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
+          const SizedBox(width: 2),
+          Expanded(child: TextField(controller: c['m'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
+          const SizedBox(width: 2),
+          Expanded(child: TextField(controller: c['r'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
+          const SizedBox(width: 2),
+          Expanded(child: TextField(controller: c['w'], decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()))),
           IconButton(
             icon: const Icon(Icons.delete, color: Colors.red, size: 20),
             onPressed: () => setState(() => list.removeAt(index)),
@@ -382,9 +361,7 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
         icon: const Icon(Icons.add),
         label: Text(label),
         onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: const Color(0xFF0A1931),
-        ),
+        style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF0A1931)),
       ),
     );
   }
