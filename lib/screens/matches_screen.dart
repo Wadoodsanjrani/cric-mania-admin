@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'add_match_screen.dart';
+import 'update_match_screen.dart';
 
 class MatchesScreen extends StatelessWidget {
   const MatchesScreen({super.key});
@@ -33,33 +34,63 @@ class MatchesScreen extends StatelessWidget {
               var m = doc.data() as Map<String, dynamic>;
               return Card(
                 margin: const EdgeInsets.only(bottom: 10),
-                child: ListTile(
-                  title: Text('${m['team1']} vs ${m['team2']}'),
-                  subtitle: Text(
-                    '${m['score1'] ?? ''} | ${m['score2'] ?? ''}\n${m['status'] ?? ''}',
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit, color: Colors.blue),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => AddMatchScreen(matchId: doc.id),
-                            ),
-                          );
-                        },
+                      Text(
+                        '${m['team1']} vs ${m['team2']}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () async {
-                          await FirebaseFirestore.instance
-                              .collection('matches')
-                              .doc(doc.id)
-                              .delete();
-                        },
+                      const SizedBox(height: 4),
+                      Text('${m['score1'] ?? ''} | ${m['score2'] ?? ''}'),
+                      Text(
+                        '${m['status'] ?? ''} · ${m['format'] ?? 'T20I'}',
+                        style: const TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                              ),
+                              icon: const Icon(Icons.update, color: Colors.white, size: 18),
+                              label: const Text('LIVE UPDATE', style: TextStyle(color: Colors.white, fontSize: 12)),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => UpdateMatchScreen(matchId: doc.id),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.edit, color: Colors.blue),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => AddMatchScreen(matchId: doc.id),
+                                ),
+                              );
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () async {
+                              await FirebaseFirestore.instance
+                                  .collection('matches')
+                                  .doc(doc.id)
+                                  .delete();
+                            },
+                          ),
+                        ],
                       ),
                     ],
                   ),
