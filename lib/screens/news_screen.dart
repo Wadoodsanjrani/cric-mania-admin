@@ -31,14 +31,58 @@ class NewsScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               var doc = snapshot.data!.docs[index];
               var n = doc.data() as Map<String, dynamic>;
+
+              // ─── LANGUAGE CHECK ───
+              String lang = n['language'] ?? 'en';
+              bool isUrdu = lang == 'ur';
+
               return Card(
                 margin: const EdgeInsets.only(bottom: 10),
                 child: ListTile(
-                  title: Text(n['title'] ?? 'No title'),
-                  subtitle: Text(
-                    n['desc'] ?? '',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  // ─── TITLE (Urdu font agar Urdu hai) ───
+                  title: Text(
+                    n['title'] ?? 'No title',
+                    style: TextStyle(
+                      fontFamily: isUrdu ? 'NotoNastaliqUrdu' : null,
+                      fontSize: isUrdu ? 18 : 16,
+                    ),
+                  ),
+                  // ─── DESCRIPTION ───
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 4),
+                      // ─── LANGUAGE BADGE ───
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isUrdu ? Colors.orange : Colors.blue,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          isUrdu ? 'اردو' : 'ENGLISH',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      // ─── DESCRIPTION TEXT ───
+                      Text(
+                        n['desc'] ?? '',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontFamily: isUrdu ? 'NotoNastaliqUrdu' : null,
+                          fontSize: isUrdu ? 16 : 14,
+                        ),
+                      ),
+                    ],
                   ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,

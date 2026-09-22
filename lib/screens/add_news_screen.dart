@@ -19,6 +19,9 @@ class _AddNewsScreenState extends State<AddNewsScreen> {
   String? _existingImageBase64;
   bool _loading = false;
 
+  // ─── LANGUAGE SELECTOR ───
+  String _selectedLanguage = 'en'; // 'en' = English, 'ur' = Urdu
+
   @override
   void initState() {
     super.initState();
@@ -36,6 +39,7 @@ class _AddNewsScreenState extends State<AddNewsScreen> {
         _titleCtrl.text = data['title'] ?? '';
         _descCtrl.text = data['desc'] ?? '';
         _existingImageBase64 = data['imageBase64'];
+        _selectedLanguage = data['language'] ?? 'en'; // ← LOAD LANGUAGE
       });
     }
   }
@@ -74,6 +78,7 @@ class _AddNewsScreenState extends State<AddNewsScreen> {
         'title': _titleCtrl.text.trim(),
         'desc': _descCtrl.text.trim(),
         'imageBase64': imageBase64,
+        'language': _selectedLanguage, // ← NAYA FIELD
         'timestamp': DateTime.now().millisecondsSinceEpoch,
       };
 
@@ -112,23 +117,84 @@ class _AddNewsScreenState extends State<AddNewsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // ─── LANGUAGE SELECTOR ───
+          const Text(
+            'News Language:',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: RadioListTile<String>(
+                  title: const Text("English"),
+                  value: 'en',
+                  groupValue: _selectedLanguage,
+                  onChanged: (val) => setState(() => _selectedLanguage = val!),
+                  activeColor: const Color(0xFF0A1931),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              Expanded(
+                child: RadioListTile<String>(
+                  title: const Text(
+                    "اردو",
+                    style: TextStyle(fontFamily: 'NotoNastaliqUrdu', fontSize: 16),
+                  ),
+                  value: 'ur',
+                  groupValue: _selectedLanguage,
+                  onChanged: (val) => setState(() => _selectedLanguage = val!),
+                  activeColor: const Color(0xFF0A1931),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ],
+          ),
+          const Divider(),
+          const SizedBox(height: 8),
+
+          // ─── TITLE ───
           TextField(
             controller: _titleCtrl,
-            decoration: const InputDecoration(
-              labelText: 'Title',
-              border: OutlineInputBorder(),
+            textDirection: _selectedLanguage == 'ur'
+                ? TextDirection.rtl
+                : TextDirection.ltr,
+            style: TextStyle(
+              fontFamily: _selectedLanguage == 'ur' ? 'NotoNastaliqUrdu' : null,
+              fontSize: _selectedLanguage == 'ur' ? 18 : 16,
+            ),
+            decoration: InputDecoration(
+              labelText: _selectedLanguage == 'ur' ? 'عنوان' : 'Title',
+              labelStyle: TextStyle(
+                fontFamily: _selectedLanguage == 'ur' ? 'NotoNastaliqUrdu' : null,
+              ),
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 16),
+
+          // ─── DESCRIPTION ───
           TextField(
             controller: _descCtrl,
             maxLines: 6,
-            decoration: const InputDecoration(
-              labelText: 'Full News',
-              border: OutlineInputBorder(),
+            textDirection: _selectedLanguage == 'ur'
+                ? TextDirection.rtl
+                : TextDirection.ltr,
+            style: TextStyle(
+              fontFamily: _selectedLanguage == 'ur' ? 'NotoNastaliqUrdu' : null,
+              fontSize: _selectedLanguage == 'ur' ? 16 : 14,
+            ),
+            decoration: InputDecoration(
+              labelText: _selectedLanguage == 'ur' ? 'تفصیل' : 'Full News',
+              labelStyle: TextStyle(
+                fontFamily: _selectedLanguage == 'ur' ? 'NotoNastaliqUrdu' : null,
+              ),
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 16),
+
+          // ─── IMAGE ───
           const Text('Image:', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           GestureDetector(
@@ -166,6 +232,8 @@ class _AddNewsScreenState extends State<AddNewsScreen> {
             ),
           ),
           const SizedBox(height: 24),
+
+          // ─── SAVE BUTTON ───
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF0A1931),
@@ -176,7 +244,8 @@ class _AddNewsScreenState extends State<AddNewsScreen> {
                 ? const CircularProgressIndicator(color: Colors.white)
                 : Text(
                     widget.newsId == null ? 'UPLOAD NEWS' : 'UPDATE NEWS',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold),
                   ),
           ),
         ],
