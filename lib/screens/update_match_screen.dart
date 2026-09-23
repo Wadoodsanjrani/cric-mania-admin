@@ -10,21 +10,22 @@ class UpdateMatchScreen extends StatefulWidget {
 }
 
 class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
-  bool _loading = true;
-  bool _saving = false;
-
-  String _team1 = '';
-  String _team2 = '';
-  String _format = 'T20I';
-  String _status = 'LIVE';
-
-  List<Map<String, TextEditingController>> _team1Batting = [];
-  List<Map<String, TextEditingController>> _team2Bowling = [];
-  List<Map<String, TextEditingController>> _team2Batting = [];
-  List<Map<String, TextEditingController>> _team1Bowling = [];
-
+  final _tournamentCtrl = TextEditingController();
+  final _team1Ctrl = TextEditingController();
+  final _team2Ctrl = TextEditingController();
   final _score1Ctrl = TextEditingController();
   final _score2Ctrl = TextEditingController();
+  final _resultCtrl = TextEditingController();
+
+  String _matchStatus = 'live';
+
+  // ─── BATTERS & BOWLERS ───
+  List<Map<String, dynamic>> _team1Batting = [];
+  List<Map<String, dynamic>> _team2Bowling = [];
+  List<Map<String, dynamic>> _team2Batting = [];
+  List<Map<String, dynamic>> _team1Bowling = [];
+
+  bool _loading = true;
 
   @override
   void initState() {
@@ -32,483 +33,814 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     _loadMatch();
   }
 
-  Map<String, TextEditingController> _batterCtrl() {
-    return {
-      'name': TextEditingController(),
-      'howOut': TextEditingController(),
-      'r': TextEditingController(),
-      'b': TextEditingController(),
-      'fours': TextEditingController(),
-      'sixes': TextEditingController(),
-      'sr': TextEditingController(),
-    };
+  @override
+  void dispose() {
+    _tournamentCtrl.dispose();
+    _team1Ctrl.dispose();
+    _team2Ctrl.dispose();
+    _score1Ctrl.dispose();
+    _score2Ctrl.dispose();
+    _resultCtrl.dispose();
+    super.dispose();
   }
 
-  Map<String, TextEditingController> _bowlerCtrl() {
-    return {
-      'name': TextEditingController(),
-      'o': TextEditingController(),
-      'm': TextEditingController(),
-      'r': TextEditingController(),
-      'w': TextEditingController(),
-    };
-  }
-
+  // ─── LOAD MATCH DATA ───
   Future<void> _loadMatch() async {
-    var doc = await FirebaseFirestore.instance
-        .collection('matches')
-        .doc(widget.matchId)
-        .get();
-    var data = doc.data() as Map<String, dynamic>?;
-    if (data != null) {
-      _team1 = data['team1'] ?? '';
-      _team2 = data['team2'] ?? '';
-      _format = data['format'] ?? 'T20I';
-      _status = data['status'] ?? 'LIVE';
-      _score1Ctrl.text = data['score1'] ?? '';
-      _score2Ctrl.text = data['score2'] ?? '';
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('matches')
+          .doc(widget.matchId)
+          .get();
 
-      // Load Team 1 Batting
-      if (data['team1Batting'] != null) {
-        for (var b in data['team1Batting']) {
-          var c = _batterCtrl();
-          c['name']!.text = b['name'] ?? '';
-          c['howOut']!.text = b['howOut'] ?? '';
-          c['r']!.text = b['r'] ?? '';
-          c['b']!.text = b['b'] ?? '';
-          c['fours']!.text = b['4s'] ?? '';
-          c['sixes']!.text = b['6s'] ?? '';
-          c['sr']!.text = b['sr'] ?? '';
-          _team1Batting.add(c);
-        }
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+
+        setState(() {
+          _tournamentCtrl.text = data['tournament'] ?? '';
+          _team1Ctrl.text = data['team1'] ?? '';
+          _team2Ctrl.text = data['team2'] ?? '';
+          _score1Ctrl.text = data['score1'] ?? '';
+          _score2Ctrl.text = data['score2'] ?? '';
+          _resultCtrl.text = data['result'] ?? '';
+
+          _matchStatus = (data['status'] ?? 'LIVE').toString().toUpperCase() ==
+                  'LIVE'
+              ? 'live'
+              : 'result';
+
+          _team1Batting = List<Map<String, dynamic>>.from(
+              (data['team1Batting'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+          _team2Bowling = List<Map<String, dynamic>>.from(
+              (data['team2Bowling'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+          _team2Batting = List<Map<String, dynamic>>.from(
+              (data['team2Batting'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+          _team1Bowling = List<Map<String, dynamic>>.from(
+              (data['team1Bowling'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+
+          _loading = false;
+        });
       }
-
-      // Load Team 2 Bowling
-      if (data['team2Bowling'] != null) {
-        for (var b in data['team2Bowling']) {
-          var c = _bowlerCtrl();
-          c['name']!.text = b['name'] ?? '';
-          c['o']!.text = b['o'] ?? '';
-          c['m']!.text = b['m'] ?? '';
-          c['r']!.text = b['r'] ?? '';
-          c['w']!.text = b['w'] ?? '';
-          _team2Bowling.add(c);
-        }
-      }
-
-      // Load Team 2 Batting
-      if (data['team2Batting'] != null) {
-        for (var b in data['team2Batting']) {
-          var c = _batterCtrl();
-          c['name']!.text = b['name'] ?? '';
-          c['howOut']!.text = b['howOut'] ?? '';
-          c['r']!.text = b['r'] ?? '';
-          c['b']!.text = b['b'] ?? '';
-          c['fours']!.text = b['4s'] ?? '';
-          c['sixes']!.text = b['6s'] ?? '';
-          c['sr']!.text = b['sr'] ?? '';
-          _team2Batting.add(c);
-        }
-      }
-
-      // Load Team 1 Bowling
-      if (data['team1Bowling'] != null) {
-        for (var b in data['team1Bowling']) {
-          var c = _bowlerCtrl();
-          c['name']!.text = b['name'] ?? '';
-          c['o']!.text = b['o'] ?? '';
-          c['m']!.text = b['m'] ?? '';
-          c['r']!.text = b['r'] ?? '';
-          c['w']!.text = b['w'] ?? '';
-          _team1Bowling.add(c);
-        }
+    } catch (e) {
+      setState(() => _loading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
       }
     }
-    setState(() => _loading = false);
   }
 
-  Future<void> _save() async {
-    setState(() => _saving = true);
-
-    var team1BattingData = _team1Batting
-        .where((b) => b['name']!.text.trim().isNotEmpty)
-        .map((b) => {
-              'name': b['name']!.text.trim(),
-              'howOut': b['howOut']!.text.trim(),
-              'r': b['r']!.text.trim(),
-              'b': b['b']!.text.trim(),
-              '4s': b['fours']!.text.trim(),
-              '6s': b['sixes']!.text.trim(),
-              'sr': b['sr']!.text.trim(),
-            })
-        .toList();
-
-    var team2BowlingData = _team2Bowling
-        .where((b) => b['name']!.text.trim().isNotEmpty)
-        .map((b) => {
-              'name': b['name']!.text.trim(),
-              'o': b['o']!.text.trim(),
-              'm': b['m']!.text.trim(),
-              'r': b['r']!.text.trim(),
-              'w': b['w']!.text.trim(),
-            })
-        .toList();
-
-    var team2BattingData = _team2Batting
-        .where((b) => b['name']!.text.trim().isNotEmpty)
-        .map((b) => {
-              'name': b['name']!.text.trim(),
-              'howOut': b['howOut']!.text.trim(),
-              'r': b['r']!.text.trim(),
-              'b': b['b']!.text.trim(),
-              '4s': b['fours']!.text.trim(),
-              '6s': b['sixes']!.text.trim(),
-              'sr': b['sr']!.text.trim(),
-            })
-        .toList();
-
-    var team1BowlingData = _team1Bowling
-        .where((b) => b['name']!.text.trim().isNotEmpty)
-        .map((b) => {
-              'name': b['name']!.text.trim(),
-              'o': b['o']!.text.trim(),
-              'm': b['m']!.text.trim(),
-              'r': b['r']!.text.trim(),
-              'w': b['w']!.text.trim(),
-            })
-        .toList();
-
-    var data = {
-      'score1': _score1Ctrl.text.trim(),
-      'score2': _score2Ctrl.text.trim(),
-      'status': _status,
-      'team1Batting': team1BattingData,
-      'team2Bowling': team2BowlingData,
-      'team2Batting': team2BattingData,
-      'team1Bowling': team1BowlingData,
-      'timestamp': DateTime.now().millisecondsSinceEpoch,
-    };
+  // ─── UPDATE MATCH ───
+  Future<void> _updateMatch() async {
+    setState(() => _loading = true);
 
     try {
       await FirebaseFirestore.instance
           .collection('matches')
           .doc(widget.matchId)
-          .set(data, SetOptions(merge: true));
+          .update({
+        'tournament': _tournamentCtrl.text.trim(),
+        'team1': _team1Ctrl.text.trim(),
+        'team2': _team2Ctrl.text.trim(),
+        'score1': _score1Ctrl.text.trim(),
+        'score2': _score2Ctrl.text.trim(),
+        'status': _matchStatus == 'live' ? 'LIVE' : 'RESULT',
+        'result': _resultCtrl.text.trim(),
+        'team1Batting': _team1Batting,
+        'team2Bowling': _team2Bowling,
+        'team2Batting': _team2Batting,
+        'team1Bowling': _team1Bowling,
+      });
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Match updated!'),
-              backgroundColor: Colors.green),
-        );
-      }
+      if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Error: $e')),
         );
       }
-    } finally {
-      if (mounted) setState(() => _saving = false);
+      setState(() => _loading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF0A1931),
+          title: const Text('Update Match', style: TextStyle(color: Colors.white)),
+          iconTheme: const IconThemeData(color: Colors.white),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
     }
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF0A1931),
-        title: const Text('Live Update', style: TextStyle(color: Colors.white)),
+        title: const Text('Update Match', style: TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('$_team1 vs $_team2',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          Text('Format: $_format', style: const TextStyle(color: Colors.grey)),
-          const SizedBox(height: 16),
-
-          _sectionTitle('Current Score'),
-          _field('Score 1', _score1Ctrl),
-          _field('Score 2', _score2Ctrl),
-
-          _sectionTitle('Status'),
-          Wrap(
-            spacing: 8,
-            children: ['LIVE', 'RESULT']
-                .map((s) => ChoiceChip(
-                      label: Text(s),
-                      selected: _status == s,
-                      onSelected: (_) => setState(() => _status = s),
-                    ))
-                .toList(),
+          // ─── MATCH STATUS ───
+          const Text('Match Status:',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: RadioListTile<String>(
+                  title: const Text('🔴 LIVE'),
+                  value: 'live',
+                  groupValue: _matchStatus,
+                  onChanged: (val) => setState(() => _matchStatus = val!),
+                  activeColor: Colors.redAccent,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              Expanded(
+                child: RadioListTile<String>(
+                  title: const Text('✅ RESULT'),
+                  value: 'result',
+                  groupValue: _matchStatus,
+                  onChanged: (val) => setState(() => _matchStatus = val!),
+                  activeColor: Colors.green,
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ],
           ),
+          const Divider(),
+
+          // ─── BASIC INFO ───
+          _textField(_tournamentCtrl, 'Tournament'),
+          const SizedBox(height: 12),
+          _textField(_team1Ctrl, 'Team 1 Name'),
+          const SizedBox(height: 12),
+          _textField(_team2Ctrl, 'Team 2 Name'),
+          const SizedBox(height: 12),
+          _textField(_score1Ctrl, 'Team 1 Score'),
+          const SizedBox(height: 12),
+          _textField(_score2Ctrl, 'Team 2 Score'),
 
           const SizedBox(height: 24),
-          _sectionTitle('$_team1 - Batting'),
-          _battingHeader(),
-          ..._team1Batting.asMap().entries.map((e) => _battingRow(e.key, e.value, _team1Batting)),
-          _addButton('Add Batter', () {
-            setState(() => _team1Batting.add(_batterCtrl()));
-          }),
+
+          // ─── TEAM 1 BATTING ───
+          _sectionHeader('🏏 ${_team1Ctrl.text} BATTING'),
+          _addButton('+ ADD BATTER', () => _addBatter(1)),
+          ..._team1Batting
+              .asMap()
+              .entries
+              .map((e) => _batterCard(e.value, e.key, 1))
+              .toList(),
+
+          const SizedBox(height: 20),
+
+          // ─── TEAM 2 BOWLING ───
+          _sectionHeader('🎯 ${_team2Ctrl.text} BOWLING'),
+          _addButton('+ ADD BOWLER', () => _addBowler(2)),
+          ..._team2Bowling
+              .asMap()
+              .entries
+              .map((e) => _bowlerCard(e.value, e.key, 2))
+              .toList(),
 
           const SizedBox(height: 24),
-          _sectionTitle('$_team2 - Bowling'),
-          _bowlingHeader(),
-          ..._team2Bowling.asMap().entries.map((e) => _bowlingRow(e.key, e.value, _team2Bowling)),
-          _addButton('Add Bowler', () {
-            setState(() => _team2Bowling.add(_bowlerCtrl()));
-          }),
+
+          // ─── TEAM 2 BATTING ───
+          _sectionHeader('🏏 ${_team2Ctrl.text} BATTING'),
+          _addButton('+ ADD BATTER', () => _addBatter(2)),
+          ..._team2Batting
+              .asMap()
+              .entries
+              .map((e) => _batterCard(e.value, e.key, 2))
+              .toList(),
+
+          const SizedBox(height: 20),
+
+          // ─── TEAM 1 BOWLING ───
+          _sectionHeader('🎯 ${_team1Ctrl.text} BOWLING'),
+          _addButton('+ ADD BOWLER', () => _addBowler(1)),
+          ..._team1Bowling
+              .asMap()
+              .entries
+              .map((e) => _bowlerCard(e.value, e.key, 1))
+              .toList(),
 
           const SizedBox(height: 24),
-          _sectionTitle('$_team2 - Batting'),
-          _battingHeader(),
-          ..._team2Batting.asMap().entries.map((e) => _battingRow(e.key, e.value, _team2Batting)),
-          _addButton('Add Batter', () {
-            setState(() => _team2Batting.add(_batterCtrl()));
-          }),
 
-          const SizedBox(height: 24),
-          _sectionTitle('$_team1 - Bowling'),
-          _bowlingHeader(),
-          ..._team1Bowling.asMap().entries.map((e) => _bowlingRow(e.key, e.value, _team1Bowling)),
-          _addButton('Add Bowler', () {
-            setState(() => _team1Bowling.add(_bowlerCtrl()));
-          }),
+          // ─── RESULT ───
+          _textField(_resultCtrl, 'Result'),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 30),
+
+          // ─── UPDATE BUTTON ───
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF0A1931),
-              padding: const EdgeInsets.symmetric(vertical: 14),
+              padding: const EdgeInsets.symmetric(vertical: 16),
             ),
-            onPressed: _saving ? null : _save,
-            child: _saving
-                ? const CircularProgressIndicator(color: Colors.white)
-                : const Text('SAVE UPDATES',
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-          const SizedBox(height: 32),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8, top: 8),
-      child: Text(title,
-          style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF0A1931))),
-    );
-  }
-
-  Widget _field(String label, TextEditingController ctrl) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: TextField(
-        controller: ctrl,
-        decoration: InputDecoration(
-            labelText: label, border: const OutlineInputBorder()),
-      ),
-    );
-  }
-
-  Widget _battingHeader() {
-    return Container(
-      color: Colors.grey.shade200,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      child: const Row(
-        children: [
-          Expanded(
-              flex: 3,
-              child: Text('Name',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 11))),
-          Expanded(
-              flex: 3,
-              child: Text('How Out',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 11))),
-          Expanded(
-              child: Text('R',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 11))),
-          Expanded(
-              child: Text('B',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 11))),
-          Expanded(
-              child: Text('4s',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 11))),
-          Expanded(
-              child: Text('6s',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 11))),
-          Expanded(
-              child: Text('SR',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 11))),
-          SizedBox(width: 32),
-        ],
-      ),
-    );
-  }
-
-  Widget _battingRow(
-      int index, Map<String, TextEditingController> c, List list) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Expanded(
-              flex: 3,
-              child: TextField(
-                  controller: c['name'],
-                  decoration: const InputDecoration(
-                      isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 2),
-          Expanded(
-              flex: 3,
-              child: TextField(
-                  controller: c['howOut'],
-                  decoration: const InputDecoration(
-                      isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 2),
-          Expanded(
-              child: TextField(
-                  controller: c['r'],
-                  decoration: const InputDecoration(
-                      isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 2),
-          Expanded(
-              child: TextField(
-                  controller: c['b'],
-                  decoration: const InputDecoration(
-                      isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 2),
-          Expanded(
-              child: TextField(
-                  controller: c['fours'],
-                  decoration: const InputDecoration(
-                      isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 2),
-          Expanded(
-              child: TextField(
-                  controller: c['sixes'],
-                  decoration: const InputDecoration(
-                      isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 2),
-          Expanded(
-              child: TextField(
-                  controller: c['sr'],
-                  decoration: const InputDecoration(
-                      isDense: true, border: OutlineInputBorder()))),
-          IconButton(
-            icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-            onPressed: () => setState(() => list.removeAt(index)),
+            onPressed: _updateMatch,
+            child: const Text(
+              'UPDATE MATCH',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _bowlingHeader() {
-    return Container(
-      color: Colors.grey.shade200,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      child: const Row(
-        children: [
-          Expanded(
-              flex: 3,
-              child: Text('Name',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 11))),
-          Expanded(
-              child: Text('O',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 11))),
-          Expanded(
-              child: Text('M',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 11))),
-          Expanded(
-              child: Text('R',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 11))),
-          Expanded(
-              child: Text('W',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 11))),
-          SizedBox(width: 32),
-        ],
+  // ─── HELPERS ───
+  Widget _textField(TextEditingController ctrl, String label) {
+    return TextField(
+      controller: ctrl,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
       ),
     );
   }
 
-  Widget _bowlingRow(
-      int index, Map<String, TextEditingController> c, List list) {
+  Widget _sectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Expanded(
-              flex: 3,
-              child: TextField(
-                  controller: c['name'],
-                  decoration: const InputDecoration(
-                      isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 2),
-          Expanded(
-              child: TextField(
-                  controller: c['o'],
-                  decoration: const InputDecoration(
-                      isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 2),
-          Expanded(
-              child: TextField(
-                  controller: c['m'],
-                  decoration: const InputDecoration(
-                      isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 2),
-          Expanded(
-              child: TextField(
-                  controller: c['r'],
-                  decoration: const InputDecoration(
-                      isDense: true, border: OutlineInputBorder()))),
-          const SizedBox(width: 2),
-          Expanded(
-              child: TextField(
-                  controller: c['w'],
-                  decoration: const InputDecoration(
-                      isDense: true, border: OutlineInputBorder()))),
-          IconButton(
-            icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-            onPressed: () => setState(() => list.removeAt(index)),
-          ),
-        ],
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: Color(0xFF0A1931),
+        ),
       ),
     );
   }
 
-  Widget _addButton(String label, VoidCallback onPressed) {
+  Widget _addButton(String label, VoidCallback onTap) {
     return Padding(
-      padding: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.only(bottom: 10),
       child: OutlinedButton.icon(
         icon: const Icon(Icons.add),
         label: Text(label),
-        onPressed: onPressed,
+        onPressed: onTap,
         style: OutlinedButton.styleFrom(
-            foregroundColor: const Color(0xFF0A1931)),
+          foregroundColor: const Color(0xFF0A1931),
+        ),
+      ),
+    );
+  }
+
+  Widget _batterCard(Map<String, dynamic> batter, int index, int team) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    batter['name'] ?? 'Batter',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
+                  onPressed: () => _editBatter(batter, index, team),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                  onPressed: () {
+                    setState(() {
+                      if (team == 1) {
+                        _team1Batting.removeAt(index);
+                      } else {
+                        _team2Batting.removeAt(index);
+                      }
+                    });
+                  },
+                ),
+              ],
+            ),
+            if ((batter['howOut'] ?? '').toString().isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    batter['howOut'],
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ),
+              ),
+            Row(
+              children: [
+                _statBox('R', batter['r'] ?? '0'),
+                _statBox('B', batter['b'] ?? '0'),
+                _statBox('4s', batter['4s'] ?? '0'),
+                _statBox('6s', batter['6s'] ?? '0'),
+                _statBox('SR', batter['sr'] ?? '0'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _bowlerCard(Map<String, dynamic> bowler, int index, int team) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    bowler['name'] ?? 'Bowler',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
+                  onPressed: () => _editBowler(bowler, index, team),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                  onPressed: () {
+                    setState(() {
+                      if (team == 2) {
+                        _team2Bowling.removeAt(index);
+                      } else {
+                        _team1Bowling.removeAt(index);
+                      }
+                    });
+                  },
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                _statBox('O', bowler['o'] ?? '0'),
+                _statBox('M', bowler['m'] ?? '0'),
+                _statBox('R', bowler['r'] ?? '0'),
+                _statBox('W', bowler['w'] ?? '0'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _statBox(String label, String value) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 2),
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.grey[100],
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Column(
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─── ADD BATTER ───
+  void _addBatter(int team) {
+    final nameCtrl = TextEditingController();
+    final howOutCtrl = TextEditingController();
+    final rCtrl = TextEditingController();
+    final bCtrl = TextEditingController();
+    final foursCtrl = TextEditingController();
+    final sixesCtrl = TextEditingController();
+    final srCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Add Batter (Team $team)'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(labelText: 'Name'),
+              ),
+              TextField(
+                controller: howOutCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'How Out (e.g. c Kohli b Bumrah)',
+                ),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: rCtrl,
+                      decoration: const InputDecoration(labelText: 'R'),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: bCtrl,
+                      decoration: const InputDecoration(labelText: 'B'),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: foursCtrl,
+                      decoration: const InputDecoration(labelText: '4s'),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: sixesCtrl,
+                      decoration: const InputDecoration(labelText: '6s'),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: srCtrl,
+                      decoration: const InputDecoration(labelText: 'SR'),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0A1931),
+            ),
+            onPressed: () {
+              setState(() {
+                final batter = {
+                  'name': nameCtrl.text.trim(),
+                  'howOut': howOutCtrl.text.trim(),
+                  'r': rCtrl.text.trim(),
+                  'b': bCtrl.text.trim(),
+                  '4s': foursCtrl.text.trim(),
+                  '6s': sixesCtrl.text.trim(),
+                  'sr': srCtrl.text.trim(),
+                };
+                if (team == 1) {
+                  _team1Batting.add(batter);
+                } else {
+                  _team2Batting.add(batter);
+                }
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Add', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── EDIT BATTER ───
+  void _editBatter(Map<String, dynamic> batter, int index, int team) {
+    final nameCtrl = TextEditingController(text: batter['name'] ?? '');
+    final howOutCtrl = TextEditingController(text: batter['howOut'] ?? '');
+    final rCtrl = TextEditingController(text: batter['r'] ?? '');
+    final bCtrl = TextEditingController(text: batter['b'] ?? '');
+    final foursCtrl = TextEditingController(text: batter['4s'] ?? '');
+    final sixesCtrl = TextEditingController(text: batter['6s'] ?? '');
+    final srCtrl = TextEditingController(text: batter['sr'] ?? '');
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Edit Batter'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(labelText: 'Name'),
+              ),
+              TextField(
+                controller: howOutCtrl,
+                decoration: const InputDecoration(labelText: 'How Out'),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: rCtrl,
+                      decoration: const InputDecoration(labelText: 'R'),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: bCtrl,
+                      decoration: const InputDecoration(labelText: 'B'),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: foursCtrl,
+                      decoration: const InputDecoration(labelText: '4s'),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: sixesCtrl,
+                      decoration: const InputDecoration(labelText: '6s'),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: srCtrl,
+                      decoration: const InputDecoration(labelText: 'SR'),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0A1931),
+            ),
+            onPressed: () {
+              setState(() {
+                final updated = {
+                  'name': nameCtrl.text.trim(),
+                  'howOut': howOutCtrl.text.trim(),
+                  'r': rCtrl.text.trim(),
+                  'b': bCtrl.text.trim(),
+                  '4s': foursCtrl.text.trim(),
+                  '6s': sixesCtrl.text.trim(),
+                  'sr': srCtrl.text.trim(),
+                };
+                if (team == 1) {
+                  _team1Batting[index] = updated;
+                } else {
+                  _team2Batting[index] = updated;
+                }
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Update', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── ADD BOWLER ───
+  void _addBowler(int team) {
+    final nameCtrl = TextEditingController();
+    final oCtrl = TextEditingController();
+    final mCtrl = TextEditingController();
+    final rCtrl = TextEditingController();
+    final wCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Add Bowler (Team $team)'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(labelText: 'Name'),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: oCtrl,
+                      decoration: const InputDecoration(labelText: 'O'),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: mCtrl,
+                      decoration: const InputDecoration(labelText: 'M'),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: rCtrl,
+                      decoration: const InputDecoration(labelText: 'R'),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: wCtrl,
+                      decoration: const InputDecoration(labelText: 'W'),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0A1931),
+            ),
+            onPressed: () {
+              setState(() {
+                final bowler = {
+                  'name': nameCtrl.text.trim(),
+                  'o': oCtrl.text.trim(),
+                  'm': mCtrl.text.trim(),
+                  'r': rCtrl.text.trim(),
+                  'w': wCtrl.text.trim(),
+                };
+                if (team == 2) {
+                  _team2Bowling.add(bowler);
+                } else {
+                  _team1Bowling.add(bowler);
+                }
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Add', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── EDIT BOWLER ───
+  void _editBowler(Map<String, dynamic> bowler, int index, int team) {
+    final nameCtrl = TextEditingController(text: bowler['name'] ?? '');
+    final oCtrl = TextEditingController(text: bowler['o'] ?? '');
+    final mCtrl = TextEditingController(text: bowler['m'] ?? '');
+    final rCtrl = TextEditingController(text: bowler['r'] ?? '');
+    final wCtrl = TextEditingController(text: bowler['w'] ?? '');
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Edit Bowler'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameCtrl,
+                decoration: const InputDecoration(labelText: 'Name'),
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: oCtrl,
+                      decoration: const InputDecoration(labelText: 'O'),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: mCtrl,
+                      decoration: const InputDecoration(labelText: 'M'),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: rCtrl,
+                      decoration: const InputDecoration(labelText: 'R'),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: wCtrl,
+                      decoration: const InputDecoration(labelText: 'W'),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0A1931),
+            ),
+            onPressed: () {
+              setState(() {
+                final updated = {
+                  'name': nameCtrl.text.trim(),
+                  'o': oCtrl.text.trim(),
+                  'm': mCtrl.text.trim(),
+                  'r': rCtrl.text.trim(),
+                  'w': wCtrl.text.trim(),
+                };
+                if (team == 2) {
+                  _team2Bowling[index] = updated;
+                } else {
+                  _team1Bowling[index] = updated;
+                }
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Update', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
