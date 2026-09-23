@@ -23,7 +23,7 @@ class AdminApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0A1931)),
         useMaterial3: true,
       ),
-      home: const LoginScreen(),
+      home: LoginScreen(),   // ← sirf const hata diya
     );
   }
 }
