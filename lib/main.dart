@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'screens/login_screen.dart';   // ← YEH IMPORT ZAROORI HAI
+import 'screens/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,7 +23,7 @@ class AdminApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0A1931)),
         useMaterial3: true,
       ),
-      home: LoginScreen(),  // ← const nahi (kyunke LoginScreen const nahi hai)
+      home: const LoginScreen(),
     );
   }
 }
