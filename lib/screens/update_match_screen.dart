@@ -15,12 +15,15 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
   final _team2Ctrl = TextEditingController();
   final _score1Ctrl = TextEditingController();
   final _score2Ctrl = TextEditingController();
+  // ✅ TEST ke liye extra scores
+  final _score3Ctrl = TextEditingController();
+  final _score4Ctrl = TextEditingController();
   final _resultCtrl = TextEditingController();
 
   String _matchStatus = 'live';
   String _matchFormat = 'ODI';
 
-  // ─── ODI/T20I: 2 innings ───
+  // ─── ODI/T20: 2 innings ───
   List<Map<String, dynamic>> _team1Batting = [];
   List<Map<String, dynamic>> _team2Bowling = [];
   List<Map<String, dynamic>> _team2Batting = [];
@@ -51,6 +54,8 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     _team2Ctrl.dispose();
     _score1Ctrl.dispose();
     _score2Ctrl.dispose();
+    _score3Ctrl.dispose();
+    _score4Ctrl.dispose();
     _resultCtrl.dispose();
     super.dispose();
   }
@@ -69,8 +74,14 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
         _team2Ctrl.text = data['team2'] ?? '';
         _score1Ctrl.text = data['score1'] ?? '';
         _score2Ctrl.text = data['score2'] ?? '';
+        // ✅ TEST ke liye extra scores load karo
+        _score3Ctrl.text = data['score3'] ?? '';
+        _score4Ctrl.text = data['score4'] ?? '';
         _resultCtrl.text = data['result'] ?? '';
-        _matchStatus = (data['status'] ?? 'LIVE').toString().toUpperCase() == 'LIVE' ? 'live' : 'result';
+        _matchStatus =
+            (data['status'] ?? 'LIVE').toString().toUpperCase() == 'LIVE'
+                ? 'live'
+                : 'result';
         _matchFormat = data['format'] ?? 'ODI';
 
         if (_matchFormat == 'TEST') {
@@ -79,19 +90,35 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           final i3 = data['innings3'] ?? {};
           final i4 = data['innings4'] ?? {};
 
-          _t1Innings1Batting = List<Map<String, dynamic>>.from((i1['batting'] ?? []).map((e) => Map<String, dynamic>.from(e)));
-          _t2Innings1Bowling = List<Map<String, dynamic>>.from((i1['bowling'] ?? []).map((e) => Map<String, dynamic>.from(e)));
-          _t2Innings1Batting = List<Map<String, dynamic>>.from((i2['batting'] ?? []).map((e) => Map<String, dynamic>.from(e)));
-          _t1Innings1Bowling = List<Map<String, dynamic>>.from((i2['bowling'] ?? []).map((e) => Map<String, dynamic>.from(e)));
-          _t1Innings2Batting = List<Map<String, dynamic>>.from((i3['batting'] ?? []).map((e) => Map<String, dynamic>.from(e)));
-          _t2Innings2Bowling = List<Map<String, dynamic>>.from((i3['bowling'] ?? []).map((e) => Map<String, dynamic>.from(e)));
-          _t2Innings2Batting = List<Map<String, dynamic>>.from((i4['batting'] ?? []).map((e) => Map<String, dynamic>.from(e)));
-          _t1Innings2Bowling = List<Map<String, dynamic>>.from((i4['bowling'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+          _t1Innings1Batting = List<Map<String, dynamic>>.from(
+              (i1['batting'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+          _t2Innings1Bowling = List<Map<String, dynamic>>.from(
+              (i1['bowling'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+          _t2Innings1Batting = List<Map<String, dynamic>>.from(
+              (i2['batting'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+          _t1Innings1Bowling = List<Map<String, dynamic>>.from(
+              (i2['bowling'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+          _t1Innings2Batting = List<Map<String, dynamic>>.from(
+              (i3['batting'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+          _t2Innings2Bowling = List<Map<String, dynamic>>.from(
+              (i3['bowling'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+          _t2Innings2Batting = List<Map<String, dynamic>>.from(
+              (i4['batting'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+          _t1Innings2Bowling = List<Map<String, dynamic>>.from(
+              (i4['bowling'] ?? []).map((e) => Map<String, dynamic>.from(e)));
         } else {
-          _team1Batting = List<Map<String, dynamic>>.from((data['team1Batting'] ?? []).map((e) => Map<String, dynamic>.from(e)));
-          _team2Bowling = List<Map<String, dynamic>>.from((data['team2Bowling'] ?? []).map((e) => Map<String, dynamic>.from(e)));
-          _team2Batting = List<Map<String, dynamic>>.from((data['team2Batting'] ?? []).map((e) => Map<String, dynamic>.from(e)));
-          _team1Bowling = List<Map<String, dynamic>>.from((data['team1Bowling'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+          _team1Batting = List<Map<String, dynamic>>.from(
+              (data['team1Batting'] ?? [])
+                  .map((e) => Map<String, dynamic>.from(e)));
+          _team2Bowling = List<Map<String, dynamic>>.from(
+              (data['team2Bowling'] ?? [])
+                  .map((e) => Map<String, dynamic>.from(e)));
+          _team2Batting = List<Map<String, dynamic>>.from(
+              (data['team2Batting'] ?? [])
+                  .map((e) => Map<String, dynamic>.from(e)));
+          _team1Bowling = List<Map<String, dynamic>>.from(
+              (data['team1Bowling'] ?? [])
+                  .map((e) => Map<String, dynamic>.from(e)));
         }
 
         _loading = false;
@@ -115,6 +142,10 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
       };
 
       if (_matchFormat == 'TEST') {
+        // ✅ TEST: 4 scores bhi save karo
+        data['score3'] = _score3Ctrl.text.trim();
+        data['score4'] = _score4Ctrl.text.trim();
+
         data['innings1'] = {
           'team': _team1Ctrl.text.trim(),
           'batting': _t1Innings1Batting,
@@ -164,7 +195,8 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
       return Scaffold(
         appBar: AppBar(
           backgroundColor: const Color(0xFF0A1931),
-          title: const Text('Update Match', style: TextStyle(color: Colors.white)),
+          title: const Text('Update Match',
+              style: TextStyle(color: Colors.white)),
           iconTheme: const IconThemeData(color: Colors.white),
         ),
         body: const Center(child: CircularProgressIndicator()),
@@ -174,24 +206,27 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF0A1931),
-        title: const Text('Update Match', style: TextStyle(color: Colors.white)),
+        title:
+            const Text('Update Match', style: TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text('Match Format:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const Text('Match Format:',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 8),
           Row(
             children: [
               Expanded(child: _formatChip('ODI')),
-              Expanded(child: _formatChip('T20I')),
+              Expanded(child: _formatChip('T20')), // ✅ T20I → T20
               Expanded(child: _formatChip('TEST')),
             ],
           ),
           const SizedBox(height: 16),
 
-          const Text('Match Status:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const Text('Match Status:',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -225,74 +260,168 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           const SizedBox(height: 12),
           _textField(_team2Ctrl, 'Team 2 Name'),
           const SizedBox(height: 12),
-          _textField(_score1Ctrl, 'Team 1 Score'),
-          const SizedBox(height: 12),
-          _textField(_score2Ctrl, 'Team 2 Score'),
+
+          // ═══════════════════════════════════════════════
+          // ✅ SCORE FIELDS — Format ke hisaab se
+          // ═══════════════════════════════════════════════
+          if (_matchFormat == 'TEST') ...[
+            // TEST: 4 scores
+            _textField(
+              _score1Ctrl,
+              '${_team1Ctrl.text.isEmpty ? "Team 1" : _team1Ctrl.text} — 1st Innings Score',
+            ),
+            const SizedBox(height: 12),
+            _textField(
+              _score2Ctrl,
+              '${_team2Ctrl.text.isEmpty ? "Team 2" : _team2Ctrl.text} — 1st Innings Score',
+            ),
+            const SizedBox(height: 12),
+            _textField(
+              _score3Ctrl,
+              '${_team1Ctrl.text.isEmpty ? "Team 1" : _team1Ctrl.text} — 2nd Innings Score',
+            ),
+            const SizedBox(height: 12),
+            _textField(
+              _score4Ctrl,
+              '${_team2Ctrl.text.isEmpty ? "Team 2" : _team2Ctrl.text} — 2nd Innings Score',
+            ),
+          ] else ...[
+            // ODI/T20: 2 scores
+            _textField(
+              _score1Ctrl,
+              '${_team1Ctrl.text.isEmpty ? "Team 1" : _team1Ctrl.text} Score',
+            ),
+            const SizedBox(height: 12),
+            _textField(
+              _score2Ctrl,
+              '${_team2Ctrl.text.isEmpty ? "Team 2" : _team2Ctrl.text} Score',
+            ),
+          ],
 
           const SizedBox(height: 24),
 
           if (_matchFormat != 'TEST') ...[
             _sectionHeader('🏏 ${_team1Ctrl.text} BATTING'),
-            _addButton('+ ADD BATTER', () => _addBatter(_team1Batting, 'Team 1')),
-            ..._team1Batting.asMap().entries.map((e) => _batterCard(e.value, e.key, _team1Batting)).toList(),
+            _addButton(
+                '+ ADD BATTER', () => _addBatter(_team1Batting, 'Team 1')),
+            ..._team1Batting
+                .asMap()
+                .entries
+                .map((e) => _batterCard(e.value, e.key, _team1Batting))
+                .toList(),
 
             const SizedBox(height: 20),
 
             _sectionHeader('🎯 ${_team2Ctrl.text} BOWLING'),
-            _addButton('+ ADD BOWLER', () => _addBowler(_team2Bowling, 'Team 2')),
-            ..._team2Bowling.asMap().entries.map((e) => _bowlerCard(e.value, e.key, _team2Bowling)).toList(),
+            _addButton(
+                '+ ADD BOWLER', () => _addBowler(_team2Bowling, 'Team 2')),
+            ..._team2Bowling
+                .asMap()
+                .entries
+                .map((e) => _bowlerCard(e.value, e.key, _team2Bowling))
+                .toList(),
 
             const SizedBox(height: 24),
 
             _sectionHeader('🏏 ${_team2Ctrl.text} BATTING'),
-            _addButton('+ ADD BATTER', () => _addBatter(_team2Batting, 'Team 2')),
-            ..._team2Batting.asMap().entries.map((e) => _batterCard(e.value, e.key, _team2Batting)).toList(),
+            _addButton(
+                '+ ADD BATTER', () => _addBatter(_team2Batting, 'Team 2')),
+            ..._team2Batting
+                .asMap()
+                .entries
+                .map((e) => _batterCard(e.value, e.key, _team2Batting))
+                .toList(),
 
             const SizedBox(height: 20),
 
             _sectionHeader('🎯 ${_team1Ctrl.text} BOWLING'),
-            _addButton('+ ADD BOWLER', () => _addBowler(_team1Bowling, 'Team 1')),
-            ..._team1Bowling.asMap().entries.map((e) => _bowlerCard(e.value, e.key, _team1Bowling)).toList(),
+            _addButton(
+                '+ ADD BOWLER', () => _addBowler(_team1Bowling, 'Team 1')),
+            ..._team1Bowling
+                .asMap()
+                .entries
+                .map((e) => _bowlerCard(e.value, e.key, _team1Bowling))
+                .toList(),
           ],
 
           if (_matchFormat == 'TEST') ...[
             _sectionHeader('🏏 1st INNINGS — ${_team1Ctrl.text} BATTING'),
-            _addButton('+ ADD BATTER', () => _addBatter(_t1Innings1Batting, 'Team 1 (1st)')),
-            ..._t1Innings1Batting.asMap().entries.map((e) => _batterCard(e.value, e.key, _t1Innings1Batting)).toList(),
+            _addButton('+ ADD BATTER',
+                () => _addBatter(_t1Innings1Batting, 'Team 1 (1st)')),
+            ..._t1Innings1Batting
+                .asMap()
+                .entries
+                .map((e) => _batterCard(e.value, e.key, _t1Innings1Batting))
+                .toList(),
 
             _sectionHeader('🎯 1st INNINGS — ${_team2Ctrl.text} BOWLING'),
-            _addButton('+ ADD BOWLER', () => _addBowler(_t2Innings1Bowling, 'Team 2 (1st)')),
-            ..._t2Innings1Bowling.asMap().entries.map((e) => _bowlerCard(e.value, e.key, _t2Innings1Bowling)).toList(),
+            _addButton('+ ADD BOWLER',
+                () => _addBowler(_t2Innings1Bowling, 'Team 2 (1st)')),
+            ..._t2Innings1Bowling
+                .asMap()
+                .entries
+                .map((e) => _bowlerCard(e.value, e.key, _t2Innings1Bowling))
+                .toList(),
 
             const Divider(height: 30),
 
             _sectionHeader('🏏 2nd INNINGS — ${_team2Ctrl.text} BATTING'),
-            _addButton('+ ADD BATTER', () => _addBatter(_t2Innings1Batting, 'Team 2 (2nd)')),
-            ..._t2Innings1Batting.asMap().entries.map((e) => _batterCard(e.value, e.key, _t2Innings1Batting)).toList(),
+            _addButton('+ ADD BATTER',
+                () => _addBatter(_t2Innings1Batting, 'Team 2 (2nd)')),
+            ..._t2Innings1Batting
+                .asMap()
+                .entries
+                .map((e) => _batterCard(e.value, e.key, _t2Innings1Batting))
+                .toList(),
 
             _sectionHeader('🎯 2nd INNINGS — ${_team1Ctrl.text} BOWLING'),
-            _addButton('+ ADD BOWLER', () => _addBowler(_t1Innings1Bowling, 'Team 1 (2nd)')),
-            ..._t1Innings1Bowling.asMap().entries.map((e) => _bowlerCard(e.value, e.key, _t1Innings1Bowling)).toList(),
+            _addButton('+ ADD BOWLER',
+                () => _addBowler(_t1Innings1Bowling, 'Team 1 (2nd)')),
+            ..._t1Innings1Bowling
+                .asMap()
+                .entries
+                .map((e) => _bowlerCard(e.value, e.key, _t1Innings1Bowling))
+                .toList(),
 
             const Divider(height: 30),
 
             _sectionHeader('🏏 3rd INNINGS — ${_team1Ctrl.text} BATTING'),
-            _addButton('+ ADD BATTER', () => _addBatter(_t1Innings2Batting, 'Team 1 (3rd)')),
-            ..._t1Innings2Batting.asMap().entries.map((e) => _batterCard(e.value, e.key, _t1Innings2Batting)).toList(),
+            _addButton('+ ADD BATTER',
+                () => _addBatter(_t1Innings2Batting, 'Team 1 (3rd)')),
+            ..._t1Innings2Batting
+                .asMap()
+                .entries
+                .map((e) => _batterCard(e.value, e.key, _t1Innings2Batting))
+                .toList(),
 
             _sectionHeader('🎯 3rd INNINGS — ${_team2Ctrl.text} BOWLING'),
-            _addButton('+ ADD BOWLER', () => _addBowler(_t2Innings2Bowling, 'Team 2 (3rd)')),
-            ..._t2Innings2Bowling.asMap().entries.map((e) => _bowlerCard(e.value, e.key, _t2Innings2Bowling)).toList(),
+            _addButton('+ ADD BOWLER',
+                () => _addBowler(_t2Innings2Bowling, 'Team 2 (3rd)')),
+            ..._t2Innings2Bowling
+                .asMap()
+                .entries
+                .map((e) => _bowlerCard(e.value, e.key, _t2Innings2Bowling))
+                .toList(),
 
             const Divider(height: 30),
 
             _sectionHeader('🏏 4th INNINGS — ${_team2Ctrl.text} BATTING'),
-            _addButton('+ ADD BATTER', () => _addBatter(_t2Innings2Batting, 'Team 2 (4th)')),
-            ..._t2Innings2Batting.asMap().entries.map((e) => _batterCard(e.value, e.key, _t2Innings2Batting)).toList(),
+            _addButton('+ ADD BATTER',
+                () => _addBatter(_t2Innings2Batting, 'Team 2 (4th)')),
+            ..._t2Innings2Batting
+                .asMap()
+                .entries
+                .map((e) => _batterCard(e.value, e.key, _t2Innings2Batting))
+                .toList(),
 
             _sectionHeader('🎯 4th INNINGS — ${_team1Ctrl.text} BOWLING'),
-            _addButton('+ ADD BOWLER', () => _addBowler(_t1Innings2Bowling, 'Team 1 (4th)')),
-            ..._t1Innings2Bowling.asMap().entries.map((e) => _bowlerCard(e.value, e.key, _t1Innings2Bowling)).toList(),
+            _addButton('+ ADD BOWLER',
+                () => _addBowler(_t1Innings2Bowling, 'Team 1 (4th)')),
+            ..._t1Innings2Bowling
+                .asMap()
+                .entries
+                .map((e) => _bowlerCard(e.value, e.key, _t1Innings2Bowling))
+                .toList(),
           ],
 
           const SizedBox(height: 24),
@@ -307,7 +436,11 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
             onPressed: _updateMatch,
-            child: const Text('UPDATE MATCH', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            child: const Text('UPDATE MATCH',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -347,14 +480,19 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     return TextField(
       controller: ctrl,
       onChanged: (val) => setState(() {}),
-      decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
+      decoration:
+          InputDecoration(labelText: label, border: const OutlineInputBorder()),
     );
   }
 
   Widget _sectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10, top: 10),
-      child: Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0A1931))),
+      child: Text(title,
+          style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF0A1931))),
     );
   }
 
@@ -370,7 +508,8 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     );
   }
 
-  Widget _batterCard(Map<String, dynamic> batter, int index, List<Map<String, dynamic>> list) {
+  Widget _batterCard(
+      Map<String, dynamic> batter, int index, List<Map<String, dynamic>> list) {
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: Padding(
@@ -379,7 +518,10 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           children: [
             Row(
               children: [
-                Expanded(child: Text(batter['name'] ?? 'Batter', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
+                Expanded(
+                    child: Text(batter['name'] ?? 'Batter',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 15))),
                 IconButton(
                   icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
                   onPressed: () => _editBatter(batter, index, list),
@@ -395,7 +537,11 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text(batter['howOut'], style: TextStyle(fontSize: 11, color: Colors.grey[600], fontStyle: FontStyle.italic)),
+                  child: Text(batter['howOut'],
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[600],
+                          fontStyle: FontStyle.italic)),
                 ),
               ),
             Row(
@@ -413,7 +559,8 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     );
   }
 
-  Widget _bowlerCard(Map<String, dynamic> bowler, int index, List<Map<String, dynamic>> list) {
+  Widget _bowlerCard(
+      Map<String, dynamic> bowler, int index, List<Map<String, dynamic>> list) {
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: Padding(
@@ -422,7 +569,10 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           children: [
             Row(
               children: [
-                Expanded(child: Text(bowler['name'] ?? 'Bowler', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
+                Expanded(
+                    child: Text(bowler['name'] ?? 'Bowler',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 15))),
                 IconButton(
                   icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
                   onPressed: () => _editBowler(bowler, index, list),
@@ -452,11 +602,18 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 2),
         padding: const EdgeInsets.symmetric(vertical: 6),
-        decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(6)),
+        decoration: BoxDecoration(
+            color: Colors.grey[100], borderRadius: BorderRadius.circular(6)),
         child: Column(
           children: [
-            Text(label, style: TextStyle(fontSize: 10, color: Colors.grey[600], fontWeight: FontWeight.bold)),
-            Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+            Text(label,
+                style: TextStyle(
+                    fontSize: 10,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.bold)),
+            Text(value,
+                style:
+                    const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
@@ -480,24 +637,51 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name')),
-              TextField(controller: howOutCtrl, decoration: const InputDecoration(labelText: 'How Out')),
+              TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(labelText: 'Name')),
+              TextField(
+                  controller: howOutCtrl,
+                  decoration: const InputDecoration(labelText: 'How Out')),
               Row(children: [
-                Expanded(child: TextField(controller: rCtrl, decoration: const InputDecoration(labelText: 'R'), keyboardType: TextInputType.number)),
-                Expanded(child: TextField(controller: bCtrl, decoration: const InputDecoration(labelText: 'B'), keyboardType: TextInputType.number)),
+                Expanded(
+                    child: TextField(
+                        controller: rCtrl,
+                        decoration: const InputDecoration(labelText: 'R'),
+                        keyboardType: TextInputType.number)),
+                Expanded(
+                    child: TextField(
+                        controller: bCtrl,
+                        decoration: const InputDecoration(labelText: 'B'),
+                        keyboardType: TextInputType.number)),
               ]),
               Row(children: [
-                Expanded(child: TextField(controller: foursCtrl, decoration: const InputDecoration(labelText: '4s'), keyboardType: TextInputType.number)),
-                Expanded(child: TextField(controller: sixesCtrl, decoration: const InputDecoration(labelText: '6s'), keyboardType: TextInputType.number)),
-                Expanded(child: TextField(controller: srCtrl, decoration: const InputDecoration(labelText: 'SR'), keyboardType: TextInputType.number)),
+                Expanded(
+                    child: TextField(
+                        controller: foursCtrl,
+                        decoration: const InputDecoration(labelText: '4s'),
+                        keyboardType: TextInputType.number)),
+                Expanded(
+                    child: TextField(
+                        controller: sixesCtrl,
+                        decoration: const InputDecoration(labelText: '6s'),
+                        keyboardType: TextInputType.number)),
+                Expanded(
+                    child: TextField(
+                        controller: srCtrl,
+                        decoration: const InputDecoration(labelText: 'SR'),
+                        keyboardType: TextInputType.number)),
               ]),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0A1931)),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0A1931)),
             onPressed: () {
               setState(() {
                 list.add({
@@ -519,7 +703,8 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     );
   }
 
-  void _editBatter(Map<String, dynamic> batter, int index, List<Map<String, dynamic>> list) {
+  void _editBatter(
+      Map<String, dynamic> batter, int index, List<Map<String, dynamic>> list) {
     final nameCtrl = TextEditingController(text: batter['name'] ?? '');
     final howOutCtrl = TextEditingController(text: batter['howOut'] ?? '');
     final rCtrl = TextEditingController(text: batter['r'] ?? '');
@@ -536,24 +721,51 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name')),
-              TextField(controller: howOutCtrl, decoration: const InputDecoration(labelText: 'How Out')),
+              TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(labelText: 'Name')),
+              TextField(
+                  controller: howOutCtrl,
+                  decoration: const InputDecoration(labelText: 'How Out')),
               Row(children: [
-                Expanded(child: TextField(controller: rCtrl, decoration: const InputDecoration(labelText: 'R'), keyboardType: TextInputType.number)),
-                Expanded(child: TextField(controller: bCtrl, decoration: const InputDecoration(labelText: 'B'), keyboardType: TextInputType.number)),
+                Expanded(
+                    child: TextField(
+                        controller: rCtrl,
+                        decoration: const InputDecoration(labelText: 'R'),
+                        keyboardType: TextInputType.number)),
+                Expanded(
+                    child: TextField(
+                        controller: bCtrl,
+                        decoration: const InputDecoration(labelText: 'B'),
+                        keyboardType: TextInputType.number)),
               ]),
               Row(children: [
-                Expanded(child: TextField(controller: foursCtrl, decoration: const InputDecoration(labelText: '4s'), keyboardType: TextInputType.number)),
-                Expanded(child: TextField(controller: sixesCtrl, decoration: const InputDecoration(labelText: '6s'), keyboardType: TextInputType.number)),
-                Expanded(child: TextField(controller: srCtrl, decoration: const InputDecoration(labelText: 'SR'), keyboardType: TextInputType.number)),
+                Expanded(
+                    child: TextField(
+                        controller: foursCtrl,
+                        decoration: const InputDecoration(labelText: '4s'),
+                        keyboardType: TextInputType.number)),
+                Expanded(
+                    child: TextField(
+                        controller: sixesCtrl,
+                        decoration: const InputDecoration(labelText: '6s'),
+                        keyboardType: TextInputType.number)),
+                Expanded(
+                    child: TextField(
+                        controller: srCtrl,
+                        decoration: const InputDecoration(labelText: 'SR'),
+                        keyboardType: TextInputType.number)),
               ]),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0A1931)),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0A1931)),
             onPressed: () {
               setState(() {
                 list[index] = {
@@ -590,22 +802,43 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name')),
+              TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(labelText: 'Name')),
               Row(children: [
-                Expanded(child: TextField(controller: oCtrl, decoration: const InputDecoration(labelText: 'O'), keyboardType: TextInputType.number)),
-                Expanded(child: TextField(controller: mCtrl, decoration: const InputDecoration(labelText: 'M'), keyboardType: TextInputType.number)),
+                Expanded(
+                    child: TextField(
+                        controller: oCtrl,
+                        decoration: const InputDecoration(labelText: 'O'),
+                        keyboardType: TextInputType.number)),
+                Expanded(
+                    child: TextField(
+                        controller: mCtrl,
+                        decoration: const InputDecoration(labelText: 'M'),
+                        keyboardType: TextInputType.number)),
               ]),
               Row(children: [
-                Expanded(child: TextField(controller: rCtrl, decoration: const InputDecoration(labelText: 'R'), keyboardType: TextInputType.number)),
-                Expanded(child: TextField(controller: wCtrl, decoration: const InputDecoration(labelText: 'W'), keyboardType: TextInputType.number)),
+                Expanded(
+                    child: TextField(
+                        controller: rCtrl,
+                        decoration: const InputDecoration(labelText: 'R'),
+                        keyboardType: TextInputType.number)),
+                Expanded(
+                    child: TextField(
+                        controller: wCtrl,
+                        decoration: const InputDecoration(labelText: 'W'),
+                        keyboardType: TextInputType.number)),
               ]),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0A1931)),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0A1931)),
             onPressed: () {
               setState(() {
                 list.add({
@@ -625,7 +858,8 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     );
   }
 
-  void _editBowler(Map<String, dynamic> bowler, int index, List<Map<String, dynamic>> list) {
+  void _editBowler(
+      Map<String, dynamic> bowler, int index, List<Map<String, dynamic>> list) {
     final nameCtrl = TextEditingController(text: bowler['name'] ?? '');
     final oCtrl = TextEditingController(text: bowler['o'] ?? '');
     final mCtrl = TextEditingController(text: bowler['m'] ?? '');
@@ -640,22 +874,43 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name')),
+              TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(labelText: 'Name')),
               Row(children: [
-                Expanded(child: TextField(controller: oCtrl, decoration: const InputDecoration(labelText: 'O'), keyboardType: TextInputType.number)),
-                Expanded(child: TextField(controller: mCtrl, decoration: const InputDecoration(labelText: 'M'), keyboardType: TextInputType.number)),
+                Expanded(
+                    child: TextField(
+                        controller: oCtrl,
+                        decoration: const InputDecoration(labelText: 'O'),
+                        keyboardType: TextInputType.number)),
+                Expanded(
+                    child: TextField(
+                        controller: mCtrl,
+                        decoration: const InputDecoration(labelText: 'M'),
+                        keyboardType: TextInputType.number)),
               ]),
               Row(children: [
-                Expanded(child: TextField(controller: rCtrl, decoration: const InputDecoration(labelText: 'R'), keyboardType: TextInputType.number)),
-                Expanded(child: TextField(controller: wCtrl, decoration: const InputDecoration(labelText: 'W'), keyboardType: TextInputType.number)),
+                Expanded(
+                    child: TextField(
+                        controller: rCtrl,
+                        decoration: const InputDecoration(labelText: 'R'),
+                        keyboardType: TextInputType.number)),
+                Expanded(
+                    child: TextField(
+                        controller: wCtrl,
+                        decoration: const InputDecoration(labelText: 'W'),
+                        keyboardType: TextInputType.number)),
               ]),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0A1931)),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0A1931)),
             onPressed: () {
               setState(() {
                 list[index] = {
