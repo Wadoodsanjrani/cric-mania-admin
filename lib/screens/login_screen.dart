@@ -1,94 +1,131 @@
 import 'package:flutter/material.dart';
-import 'dashboard_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
-
-  @override
-  State<LoginScreen> createState() => _LoginScreenState();
-}
-
-class _LoginScreenState extends State<LoginScreen> {
-  final _passCtrl = TextEditingController();
-  bool _loading = false;
-  String? _error;
-
-  void _login() {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-
-    if (_passCtrl.text.trim() == '1996') {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => DashboardScreen()),
-      );
-    } else {
-      setState(() {
-        _error = 'Galat password!';
-        _loading = false;
-      });
-    }
-  }
+class ManageMatchesScreen extends StatelessWidget {
+  const ManageMatchesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A1931),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Card(
-            elevation: 8,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.admin_panel_settings, size: 64, color: Color(0xFF0A1931)),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'CRIC MANIA ADMIN',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF0A1931)),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text('Admin Login', style: TextStyle(color: Colors.grey)),
-                  const SizedBox(height: 24),
-                  TextField(
-                    controller: _passCtrl,
-                    obscureText: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Password',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.lock),
-                    ),
-                  ),
-                  if (_error != null) ...[
-                    const SizedBox(height: 12),
-                    Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 12)),
-                  ],
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0A1931),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF0A1931),
+        title: const Text(
+          'Manage Matches',
+          style: TextStyle(color: Colors.white),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('matches')
+            .orderBy('timestamp', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData)
+            return const Center(child: CircularProgressIndicator());
+          if (snapshot.data!.docs.isEmpty)
+            return const Center(child: Text('No matches yet'));
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(10),
+            itemCount: snapshot.data!.docs.length,
+            itemBuilder: (context, index) {
+              var doc = snapshot.data!.docs[index];
+              var m = doc.data() as Map<String, dynamic>;
+              bool isLive = m['isLive'] ?? true;
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 10),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if ((m['tournament'] ?? "").toString().isNotEmpty)
+                        Text(
+                          m['tournament'],
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "${m['team1']} vs ${m['team2']}",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
-                      onPressed: _loading ? null : _login,
-                      child: _loading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text('LOGIN', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _toggleButton(
+                              label: '🔴 LIVE',
+                              isSelected: isLive,
+                              color: Colors.redAccent,
+                              onTap: () => _updateStatus(doc.id, true),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _toggleButton(
+                              label: '📁 RECENT',
+                              isSelected: !isLive,
+                              color: Colors.grey[600]!,
+                              onTap: () => _updateStatus(doc.id, false),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _toggleButton({
+    required String label,
+    required bool isSelected,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? color : Colors.grey[200],
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? color : Colors.grey[400]!,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.white : Colors.black87,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
             ),
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _updateStatus(String matchId, bool isLive) async {
+    await FirebaseFirestore.instance
+        .collection('matches')
+        .doc(matchId)
+        .update({'isLive': isLive});
   }
 }

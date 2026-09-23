@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'matches_screen.dart';
+import 'news_screen.dart';
 import 'manage_matches_screen.dart';
 import 'manage_news_screen.dart';
 
@@ -44,24 +46,47 @@ class DashboardScreen extends StatelessWidget {
 
           const SizedBox(height: 24),
 
-          // ─── QUICK ACTIONS ───
+          // ─── MATCHES SECTION ───
           const Text(
-            'Quick Actions',
+            'Matches',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           _actionTile(
             context,
             '🏏 Manage Matches',
-            'Control Live / Recent',
+            'Add / Edit / Delete Matches',
             Icons.sports_cricket,
-            const ManageMatchesScreen(),
+            const MatchesScreen(),
           ),
           _actionTile(
             context,
+            '🔴 Live / Recent Control',
+            'Move matches between Live and Recent',
+            Icons.swap_horiz,
+            const ManageMatchesScreen(),
+          ),
+
+          const SizedBox(height: 24),
+
+          // ─── NEWS SECTION ───
+          const Text(
+            'News',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          _actionTile(
+            context,
             '📰 Manage News',
-            'Control Latest / Archived',
+            'Add / Edit / Delete News',
             Icons.newspaper,
+            const NewsScreen(),
+          ),
+          _actionTile(
+            context,
+            '📁 Latest / Archived Control',
+            'Move news between Latest and Archived',
+            Icons.swap_horiz,
             const ManageNewsScreen(),
           ),
         ],
