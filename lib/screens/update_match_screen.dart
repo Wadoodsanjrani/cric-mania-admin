@@ -19,7 +19,6 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
 
   String _matchStatus = 'live';
 
-  // ─── BATTERS & BOWLERS ───
   List<Map<String, dynamic>> _team1Batting = [];
   List<Map<String, dynamic>> _team2Bowling = [];
   List<Map<String, dynamic>> _team2Batting = [];
@@ -44,53 +43,31 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     super.dispose();
   }
 
-  // ─── LOAD MATCH DATA ───
   Future<void> _loadMatch() async {
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection('matches')
-          .doc(widget.matchId)
-          .get();
+    final doc = await FirebaseFirestore.instance
+        .collection('matches')
+        .doc(widget.matchId)
+        .get();
 
-      if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>;
-
-        setState(() {
-          _tournamentCtrl.text = data['tournament'] ?? '';
-          _team1Ctrl.text = data['team1'] ?? '';
-          _team2Ctrl.text = data['team2'] ?? '';
-          _score1Ctrl.text = data['score1'] ?? '';
-          _score2Ctrl.text = data['score2'] ?? '';
-          _resultCtrl.text = data['result'] ?? '';
-
-          _matchStatus = (data['status'] ?? 'LIVE').toString().toUpperCase() ==
-                  'LIVE'
-              ? 'live'
-              : 'result';
-
-          _team1Batting = List<Map<String, dynamic>>.from(
-              (data['team1Batting'] ?? []).map((e) => Map<String, dynamic>.from(e)));
-          _team2Bowling = List<Map<String, dynamic>>.from(
-              (data['team2Bowling'] ?? []).map((e) => Map<String, dynamic>.from(e)));
-          _team2Batting = List<Map<String, dynamic>>.from(
-              (data['team2Batting'] ?? []).map((e) => Map<String, dynamic>.from(e)));
-          _team1Bowling = List<Map<String, dynamic>>.from(
-              (data['team1Bowling'] ?? []).map((e) => Map<String, dynamic>.from(e)));
-
-          _loading = false;
-        });
-      }
-    } catch (e) {
-      setState(() => _loading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
-      }
+    if (doc.exists) {
+      final data = doc.data() as Map<String, dynamic>;
+      setState(() {
+        _tournamentCtrl.text = data['tournament'] ?? '';
+        _team1Ctrl.text = data['team1'] ?? '';
+        _team2Ctrl.text = data['team2'] ?? '';
+        _score1Ctrl.text = data['score1'] ?? '';
+        _score2Ctrl.text = data['score2'] ?? '';
+        _resultCtrl.text = data['result'] ?? '';
+        _matchStatus = (data['status'] ?? 'LIVE').toString().toUpperCase() == 'LIVE' ? 'live' : 'result';
+        _team1Batting = List<Map<String, dynamic>>.from((data['team1Batting'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+        _team2Bowling = List<Map<String, dynamic>>.from((data['team2Bowling'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+        _team2Batting = List<Map<String, dynamic>>.from((data['team2Batting'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+        _team1Bowling = List<Map<String, dynamic>>.from((data['team1Bowling'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+        _loading = false;
+      });
     }
   }
 
-  // ─── UPDATE MATCH ───
   Future<void> _updateMatch() async {
     setState(() => _loading = true);
 
@@ -145,9 +122,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // ─── MATCH STATUS ───
-          const Text('Match Status:',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const Text('Match Status:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 8),
           Row(
             children: [
@@ -175,7 +150,6 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           ),
           const Divider(),
 
-          // ─── BASIC INFO ───
           _textField(_tournamentCtrl, 'Tournament'),
           const SizedBox(height: 12),
           _textField(_team1Ctrl, 'Team 1 Name'),
@@ -188,98 +162,58 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
 
           const SizedBox(height: 24),
 
-          // ─── TEAM 1 BATTING ───
           _sectionHeader('🏏 ${_team1Ctrl.text} BATTING'),
           _addButton('+ ADD BATTER', () => _addBatter(1)),
-          ..._team1Batting
-              .asMap()
-              .entries
-              .map((e) => _batterCard(e.value, e.key, 1))
-              .toList(),
+          ..._team1Batting.asMap().entries.map((e) => _batterCard(e.value, e.key, 1)).toList(),
 
           const SizedBox(height: 20),
 
-          // ─── TEAM 2 BOWLING ───
           _sectionHeader('🎯 ${_team2Ctrl.text} BOWLING'),
           _addButton('+ ADD BOWLER', () => _addBowler(2)),
-          ..._team2Bowling
-              .asMap()
-              .entries
-              .map((e) => _bowlerCard(e.value, e.key, 2))
-              .toList(),
+          ..._team2Bowling.asMap().entries.map((e) => _bowlerCard(e.value, e.key, 2)).toList(),
 
           const SizedBox(height: 24),
 
-          // ─── TEAM 2 BATTING ───
           _sectionHeader('🏏 ${_team2Ctrl.text} BATTING'),
           _addButton('+ ADD BATTER', () => _addBatter(2)),
-          ..._team2Batting
-              .asMap()
-              .entries
-              .map((e) => _batterCard(e.value, e.key, 2))
-              .toList(),
+          ..._team2Batting.asMap().entries.map((e) => _batterCard(e.value, e.key, 2)).toList(),
 
           const SizedBox(height: 20),
 
-          // ─── TEAM 1 BOWLING ───
           _sectionHeader('🎯 ${_team1Ctrl.text} BOWLING'),
           _addButton('+ ADD BOWLER', () => _addBowler(1)),
-          ..._team1Bowling
-              .asMap()
-              .entries
-              .map((e) => _bowlerCard(e.value, e.key, 1))
-              .toList(),
+          ..._team1Bowling.asMap().entries.map((e) => _bowlerCard(e.value, e.key, 1)).toList(),
 
           const SizedBox(height: 24),
 
-          // ─── RESULT ───
           _textField(_resultCtrl, 'Result'),
 
           const SizedBox(height: 30),
 
-          // ─── UPDATE BUTTON ───
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF0A1931),
               padding: const EdgeInsets.symmetric(vertical: 16),
             ),
             onPressed: _updateMatch,
-            child: const Text(
-              'UPDATE MATCH',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            child: const Text('UPDATE MATCH', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
     );
   }
 
-  // ─── HELPERS ───
   Widget _textField(TextEditingController ctrl, String label) {
     return TextField(
       controller: ctrl,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-      ),
+      decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
     );
   }
 
   Widget _sectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF0A1931),
-        ),
-      ),
+      child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0A1931))),
     );
   }
 
@@ -290,9 +224,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
         icon: const Icon(Icons.add),
         label: Text(label),
         onPressed: onTap,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: const Color(0xFF0A1931),
-        ),
+        style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF0A1931)),
       ),
     );
   }
@@ -306,15 +238,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           children: [
             Row(
               children: [
-                Expanded(
-                  child: Text(
-                    batter['name'] ?? 'Batter',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
-                ),
+                Expanded(child: Text(batter['name'] ?? 'Batter', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
                 IconButton(
                   icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
                   onPressed: () => _editBatter(batter, index, team),
@@ -338,14 +262,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text(
-                    batter['howOut'],
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey[600],
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
+                  child: Text(batter['howOut'], style: TextStyle(fontSize: 11, color: Colors.grey[600], fontStyle: FontStyle.italic)),
                 ),
               ),
             Row(
@@ -372,15 +289,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           children: [
             Row(
               children: [
-                Expanded(
-                  child: Text(
-                    bowler['name'] ?? 'Bowler',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
-                ),
+                Expanded(child: Text(bowler['name'] ?? 'Bowler', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
                 IconButton(
                   icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
                   onPressed: () => _editBowler(bowler, index, team),
@@ -418,34 +327,17 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 2),
         padding: const EdgeInsets.symmetric(vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.grey[100],
-          borderRadius: BorderRadius.circular(6),
-        ),
+        decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(6)),
         child: Column(
           children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            Text(label, style: TextStyle(fontSize: 10, color: Colors.grey[600], fontWeight: FontWeight.bold)),
+            Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
     );
   }
 
-  // ─── ADD BATTER ───
   void _addBatter(int team) {
     final nameCtrl = TextEditingController();
     final howOutCtrl = TextEditingController();
@@ -463,71 +355,24 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                controller: nameCtrl,
-                decoration: const InputDecoration(labelText: 'Name'),
-              ),
-              TextField(
-                controller: howOutCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'How Out (e.g. c Kohli b Bumrah)',
-                ),
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: rCtrl,
-                      decoration: const InputDecoration(labelText: 'R'),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: bCtrl,
-                      decoration: const InputDecoration(labelText: 'B'),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: foursCtrl,
-                      decoration: const InputDecoration(labelText: '4s'),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: sixesCtrl,
-                      decoration: const InputDecoration(labelText: '6s'),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: srCtrl,
-                      decoration: const InputDecoration(labelText: 'SR'),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                ],
-              ),
+              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name')),
+              TextField(controller: howOutCtrl, decoration: const InputDecoration(labelText: 'How Out')),
+              Row(children: [
+                Expanded(child: TextField(controller: rCtrl, decoration: const InputDecoration(labelText: 'R'), keyboardType: TextInputType.number)),
+                Expanded(child: TextField(controller: bCtrl, decoration: const InputDecoration(labelText: 'B'), keyboardType: TextInputType.number)),
+              ]),
+              Row(children: [
+                Expanded(child: TextField(controller: foursCtrl, decoration: const InputDecoration(labelText: '4s'), keyboardType: TextInputType.number)),
+                Expanded(child: TextField(controller: sixesCtrl, decoration: const InputDecoration(labelText: '6s'), keyboardType: TextInputType.number)),
+                Expanded(child: TextField(controller: srCtrl, decoration: const InputDecoration(labelText: 'SR'), keyboardType: TextInputType.number)),
+              ]),
             ],
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0A1931),
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0A1931)),
             onPressed: () {
               setState(() {
                 final batter = {
@@ -554,7 +399,6 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     );
   }
 
-  // ─── EDIT BATTER ───
   void _editBatter(Map<String, dynamic> batter, int index, int team) {
     final nameCtrl = TextEditingController(text: batter['name'] ?? '');
     final howOutCtrl = TextEditingController(text: batter['howOut'] ?? '');
@@ -567,74 +411,29 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('Edit Batter'),
+        title: const Text('Edit Batter'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                controller: nameCtrl,
-                decoration: const InputDecoration(labelText: 'Name'),
-              ),
-              TextField(
-                controller: howOutCtrl,
-                decoration: const InputDecoration(labelText: 'How Out'),
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: rCtrl,
-                      decoration: const InputDecoration(labelText: 'R'),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: bCtrl,
-                      decoration: const InputDecoration(labelText: 'B'),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: foursCtrl,
-                      decoration: const InputDecoration(labelText: '4s'),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: sixesCtrl,
-                      decoration: const InputDecoration(labelText: '6s'),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: srCtrl,
-                      decoration: const InputDecoration(labelText: 'SR'),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                ],
-              ),
+              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name')),
+              TextField(controller: howOutCtrl, decoration: const InputDecoration(labelText: 'How Out')),
+              Row(children: [
+                Expanded(child: TextField(controller: rCtrl, decoration: const InputDecoration(labelText: 'R'), keyboardType: TextInputType.number)),
+                Expanded(child: TextField(controller: bCtrl, decoration: const InputDecoration(labelText: 'B'), keyboardType: TextInputType.number)),
+              ]),
+              Row(children: [
+                Expanded(child: TextField(controller: foursCtrl, decoration: const InputDecoration(labelText: '4s'), keyboardType: TextInputType.number)),
+                Expanded(child: TextField(controller: sixesCtrl, decoration: const InputDecoration(labelText: '6s'), keyboardType: TextInputType.number)),
+                Expanded(child: TextField(controller: srCtrl, decoration: const InputDecoration(labelText: 'SR'), keyboardType: TextInputType.number)),
+              ]),
             ],
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0A1931),
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0A1931)),
             onPressed: () {
               setState(() {
                 final updated = {
@@ -661,7 +460,6 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     );
   }
 
-  // ─── ADD BOWLER ───
   void _addBowler(int team) {
     final nameCtrl = TextEditingController();
     final oCtrl = TextEditingController();
@@ -677,58 +475,22 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                controller: nameCtrl,
-                decoration: const InputDecoration(labelText: 'Name'),
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: oCtrl,
-                      decoration: const InputDecoration(labelText: 'O'),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: mCtrl,
-                      decoration: const InputDecoration(labelText: 'M'),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: rCtrl,
-                      decoration: const InputDecoration(labelText: 'R'),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: wCtrl,
-                      decoration: const InputDecoration(labelText: 'W'),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                ],
-              ),
+              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name')),
+              Row(children: [
+                Expanded(child: TextField(controller: oCtrl, decoration: const InputDecoration(labelText: 'O'), keyboardType: TextInputType.number)),
+                Expanded(child: TextField(controller: mCtrl, decoration: const InputDecoration(labelText: 'M'), keyboardType: TextInputType.number)),
+              ]),
+              Row(children: [
+                Expanded(child: TextField(controller: rCtrl, decoration: const InputDecoration(labelText: 'R'), keyboardType: TextInputType.number)),
+                Expanded(child: TextField(controller: wCtrl, decoration: const InputDecoration(labelText: 'W'), keyboardType: TextInputType.number)),
+              ]),
             ],
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0A1931),
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0A1931)),
             onPressed: () {
               setState(() {
                 final bowler = {
@@ -753,7 +515,6 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     );
   }
 
-  // ─── EDIT BOWLER ───
   void _editBowler(Map<String, dynamic> bowler, int index, int team) {
     final nameCtrl = TextEditingController(text: bowler['name'] ?? '');
     final oCtrl = TextEditingController(text: bowler['o'] ?? '');
@@ -764,63 +525,27 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('Edit Bowler'),
+        title: const Text('Edit Bowler'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                controller: nameCtrl,
-                decoration: const InputDecoration(labelText: 'Name'),
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: oCtrl,
-                      decoration: const InputDecoration(labelText: 'O'),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: mCtrl,
-                      decoration: const InputDecoration(labelText: 'M'),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: rCtrl,
-                      decoration: const InputDecoration(labelText: 'R'),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: wCtrl,
-                      decoration: const InputDecoration(labelText: 'W'),
-                      keyboardType: TextInputType.number,
-                    ),
-                  ),
-                ],
-              ),
+              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name')),
+              Row(children: [
+                Expanded(child: TextField(controller: oCtrl, decoration: const InputDecoration(labelText: 'O'), keyboardType: TextInputType.number)),
+                Expanded(child: TextField(controller: mCtrl, decoration: const InputDecoration(labelText: 'M'), keyboardType: TextInputType.number)),
+              ]),
+              Row(children: [
+                Expanded(child: TextField(controller: rCtrl, decoration: const InputDecoration(labelText: 'R'), keyboardType: TextInputType.number)),
+                Expanded(child: TextField(controller: wCtrl, decoration: const InputDecoration(labelText: 'W'), keyboardType: TextInputType.number)),
+              ]),
             ],
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0A1931),
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0A1931)),
             onPressed: () {
               setState(() {
                 final updated = {

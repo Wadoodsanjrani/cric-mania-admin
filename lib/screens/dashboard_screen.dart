@@ -3,8 +3,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'matches_screen.dart';
 import 'news_screen.dart';
-import 'manage_matches_screen.dart';
-import 'manage_news_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -25,7 +23,10 @@ class DashboardScreen extends StatelessWidget {
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
               if (context.mounted) {
-                Navigator.pushReplacementNamed(context, '/');
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                );
               }
             },
           ),
@@ -34,7 +35,6 @@ class DashboardScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // ─── STATISTICS ───
           const Text(
             'Statistics',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -43,51 +43,23 @@ class DashboardScreen extends StatelessWidget {
           _statCard('Matches', 'matches', Icons.sports_cricket),
           _statCard('News', 'news', Icons.newspaper),
           _statCard('Users', 'users', Icons.people),
-
           const SizedBox(height: 24),
-
-          // ─── MATCHES SECTION ───
           const Text(
-            'Matches',
+            'Quick Actions',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           _actionTile(
             context,
             '🏏 Manage Matches',
-            'Add / Edit / Delete Matches',
             Icons.sports_cricket,
             const MatchesScreen(),
           ),
           _actionTile(
             context,
-            '🔴 Live / Recent Control',
-            'Move matches between Live and Recent',
-            Icons.swap_horiz,
-            const ManageMatchesScreen(),
-          ),
-
-          const SizedBox(height: 24),
-
-          // ─── NEWS SECTION ───
-          const Text(
-            'News',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          _actionTile(
-            context,
             '📰 Manage News',
-            'Add / Edit / Delete News',
             Icons.newspaper,
             const NewsScreen(),
-          ),
-          _actionTile(
-            context,
-            '📁 Latest / Archived Control',
-            'Move news between Latest and Archived',
-            Icons.swap_horiz,
-            const ManageNewsScreen(),
           ),
         ],
       ),
@@ -120,7 +92,6 @@ class DashboardScreen extends StatelessWidget {
   Widget _actionTile(
     BuildContext context,
     String title,
-    String subtitle,
     IconData icon,
     Widget screen,
   ) {
@@ -131,10 +102,6 @@ class DashboardScreen extends StatelessWidget {
         title: Text(
           title,
           style: const TextStyle(fontWeight: FontWeight.w500),
-        ),
-        subtitle: Text(
-          subtitle,
-          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
         ),
         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
         onTap: () => Navigator.push(

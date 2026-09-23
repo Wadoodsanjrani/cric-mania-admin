@@ -19,68 +19,46 @@ class NewsScreen extends StatelessWidget {
             .orderBy('timestamp', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
+          if (!snapshot.hasData)
             return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.data!.docs.isEmpty) {
+          if (snapshot.data!.docs.isEmpty)
             return const Center(child: Text('No news yet'));
-          }
+
           return ListView.builder(
             padding: const EdgeInsets.all(10),
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {
               var doc = snapshot.data!.docs[index];
               var n = doc.data() as Map<String, dynamic>;
-
-              // ─── LANGUAGE CHECK ───
-              String lang = n['language'] ?? 'en';
-              bool isUrdu = lang == 'ur';
+              bool isUrdu = n['language'] == 'ur';
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 10),
                 child: ListTile(
-                  // ─── TITLE (Urdu font agar Urdu hai) ───
                   title: Text(
                     n['title'] ?? 'No title',
-                    style: TextStyle(
-                      fontFamily: isUrdu ? 'NotoNastaliqUrdu' : null,
-                      fontSize: isUrdu ? 18 : 16,
-                    ),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  // ─── DESCRIPTION ───
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 4),
-                      // ─── LANGUAGE BADGE ───
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: isUrdu ? Colors.orange : Colors.blue,
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
                           isUrdu ? 'اردو' : 'ENGLISH',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
                         ),
                       ),
                       const SizedBox(height: 4),
-                      // ─── DESCRIPTION TEXT ───
                       Text(
                         n['desc'] ?? '',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontFamily: isUrdu ? 'NotoNastaliqUrdu' : null,
-                          fontSize: isUrdu ? 16 : 14,
-                        ),
                       ),
                     ],
                   ),
