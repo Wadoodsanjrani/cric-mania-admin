@@ -18,11 +18,23 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
   final _resultCtrl = TextEditingController();
 
   String _matchStatus = 'live';
+  String _matchFormat = 'ODI';
 
+  // ─── ODI/T20I: 2 innings ───
   List<Map<String, dynamic>> _team1Batting = [];
   List<Map<String, dynamic>> _team2Bowling = [];
   List<Map<String, dynamic>> _team2Batting = [];
   List<Map<String, dynamic>> _team1Bowling = [];
+
+  // ─── TEST: 4 innings ───
+  List<Map<String, dynamic>> _t1Innings1Batting = [];
+  List<Map<String, dynamic>> _t2Innings1Bowling = [];
+  List<Map<String, dynamic>> _t2Innings1Batting = [];
+  List<Map<String, dynamic>> _t1Innings1Bowling = [];
+  List<Map<String, dynamic>> _t1Innings2Batting = [];
+  List<Map<String, dynamic>> _t2Innings2Bowling = [];
+  List<Map<String, dynamic>> _t2Innings2Batting = [];
+  List<Map<String, dynamic>> _t1Innings2Bowling = [];
 
   bool _loading = true;
 
@@ -59,10 +71,29 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
         _score2Ctrl.text = data['score2'] ?? '';
         _resultCtrl.text = data['result'] ?? '';
         _matchStatus = (data['status'] ?? 'LIVE').toString().toUpperCase() == 'LIVE' ? 'live' : 'result';
-        _team1Batting = List<Map<String, dynamic>>.from((data['team1Batting'] ?? []).map((e) => Map<String, dynamic>.from(e)));
-        _team2Bowling = List<Map<String, dynamic>>.from((data['team2Bowling'] ?? []).map((e) => Map<String, dynamic>.from(e)));
-        _team2Batting = List<Map<String, dynamic>>.from((data['team2Batting'] ?? []).map((e) => Map<String, dynamic>.from(e)));
-        _team1Bowling = List<Map<String, dynamic>>.from((data['team1Bowling'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+        _matchFormat = data['format'] ?? 'ODI';
+
+        if (_matchFormat == 'TEST') {
+          final i1 = data['innings1'] ?? {};
+          final i2 = data['innings2'] ?? {};
+          final i3 = data['innings3'] ?? {};
+          final i4 = data['innings4'] ?? {};
+
+          _t1Innings1Batting = List<Map<String, dynamic>>.from((i1['batting'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+          _t2Innings1Bowling = List<Map<String, dynamic>>.from((i1['bowling'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+          _t2Innings1Batting = List<Map<String, dynamic>>.from((i2['batting'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+          _t1Innings1Bowling = List<Map<String, dynamic>>.from((i2['bowling'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+          _t1Innings2Batting = List<Map<String, dynamic>>.from((i3['batting'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+          _t2Innings2Bowling = List<Map<String, dynamic>>.from((i3['bowling'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+          _t2Innings2Batting = List<Map<String, dynamic>>.from((i4['batting'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+          _t1Innings2Bowling = List<Map<String, dynamic>>.from((i4['bowling'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+        } else {
+          _team1Batting = List<Map<String, dynamic>>.from((data['team1Batting'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+          _team2Bowling = List<Map<String, dynamic>>.from((data['team2Bowling'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+          _team2Batting = List<Map<String, dynamic>>.from((data['team2Batting'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+          _team1Bowling = List<Map<String, dynamic>>.from((data['team1Bowling'] ?? []).map((e) => Map<String, dynamic>.from(e)));
+        }
+
         _loading = false;
       });
     }
@@ -72,22 +103,49 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     setState(() => _loading = true);
 
     try {
-      await FirebaseFirestore.instance
-          .collection('matches')
-          .doc(widget.matchId)
-          .update({
+      Map<String, dynamic> data = {
         'tournament': _tournamentCtrl.text.trim(),
         'team1': _team1Ctrl.text.trim(),
         'team2': _team2Ctrl.text.trim(),
         'score1': _score1Ctrl.text.trim(),
         'score2': _score2Ctrl.text.trim(),
         'status': _matchStatus == 'live' ? 'LIVE' : 'RESULT',
+        'format': _matchFormat,
         'result': _resultCtrl.text.trim(),
-        'team1Batting': _team1Batting,
-        'team2Bowling': _team2Bowling,
-        'team2Batting': _team2Batting,
-        'team1Bowling': _team1Bowling,
-      });
+      };
+
+      if (_matchFormat == 'TEST') {
+        data['innings1'] = {
+          'team': _team1Ctrl.text.trim(),
+          'batting': _t1Innings1Batting,
+          'bowling': _t2Innings1Bowling,
+        };
+        data['innings2'] = {
+          'team': _team2Ctrl.text.trim(),
+          'batting': _t2Innings1Batting,
+          'bowling': _t1Innings1Bowling,
+        };
+        data['innings3'] = {
+          'team': _team1Ctrl.text.trim(),
+          'batting': _t1Innings2Batting,
+          'bowling': _t2Innings2Bowling,
+        };
+        data['innings4'] = {
+          'team': _team2Ctrl.text.trim(),
+          'batting': _t2Innings2Batting,
+          'bowling': _t1Innings2Bowling,
+        };
+      } else {
+        data['team1Batting'] = _team1Batting;
+        data['team2Bowling'] = _team2Bowling;
+        data['team2Batting'] = _team2Batting;
+        data['team1Bowling'] = _team1Bowling;
+      }
+
+      await FirebaseFirestore.instance
+          .collection('matches')
+          .doc(widget.matchId)
+          .update(data);
 
       if (mounted) Navigator.pop(context);
     } catch (e) {
@@ -122,6 +180,17 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const Text('Match Format:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(child: _formatChip('ODI')),
+              Expanded(child: _formatChip('T20I')),
+              Expanded(child: _formatChip('TEST')),
+            ],
+          ),
+          const SizedBox(height: 16),
+
           const Text('Match Status:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 8),
           Row(
@@ -162,27 +231,69 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
 
           const SizedBox(height: 24),
 
-          _sectionHeader('🏏 ${_team1Ctrl.text} BATTING'),
-          _addButton('+ ADD BATTER', () => _addBatter(1)),
-          ..._team1Batting.asMap().entries.map((e) => _batterCard(e.value, e.key, 1)).toList(),
+          if (_matchFormat != 'TEST') ...[
+            _sectionHeader('🏏 ${_team1Ctrl.text} BATTING'),
+            _addButton('+ ADD BATTER', () => _addBatter(_team1Batting, 'Team 1')),
+            ..._team1Batting.asMap().entries.map((e) => _batterCard(e.value, e.key, _team1Batting)).toList(),
 
-          const SizedBox(height: 20),
+            const SizedBox(height: 20),
 
-          _sectionHeader('🎯 ${_team2Ctrl.text} BOWLING'),
-          _addButton('+ ADD BOWLER', () => _addBowler(2)),
-          ..._team2Bowling.asMap().entries.map((e) => _bowlerCard(e.value, e.key, 2)).toList(),
+            _sectionHeader('🎯 ${_team2Ctrl.text} BOWLING'),
+            _addButton('+ ADD BOWLER', () => _addBowler(_team2Bowling, 'Team 2')),
+            ..._team2Bowling.asMap().entries.map((e) => _bowlerCard(e.value, e.key, _team2Bowling)).toList(),
 
-          const SizedBox(height: 24),
+            const SizedBox(height: 24),
 
-          _sectionHeader('🏏 ${_team2Ctrl.text} BATTING'),
-          _addButton('+ ADD BATTER', () => _addBatter(2)),
-          ..._team2Batting.asMap().entries.map((e) => _batterCard(e.value, e.key, 2)).toList(),
+            _sectionHeader('🏏 ${_team2Ctrl.text} BATTING'),
+            _addButton('+ ADD BATTER', () => _addBatter(_team2Batting, 'Team 2')),
+            ..._team2Batting.asMap().entries.map((e) => _batterCard(e.value, e.key, _team2Batting)).toList(),
 
-          const SizedBox(height: 20),
+            const SizedBox(height: 20),
 
-          _sectionHeader('🎯 ${_team1Ctrl.text} BOWLING'),
-          _addButton('+ ADD BOWLER', () => _addBowler(1)),
-          ..._team1Bowling.asMap().entries.map((e) => _bowlerCard(e.value, e.key, 1)).toList(),
+            _sectionHeader('🎯 ${_team1Ctrl.text} BOWLING'),
+            _addButton('+ ADD BOWLER', () => _addBowler(_team1Bowling, 'Team 1')),
+            ..._team1Bowling.asMap().entries.map((e) => _bowlerCard(e.value, e.key, _team1Bowling)).toList(),
+          ],
+
+          if (_matchFormat == 'TEST') ...[
+            _sectionHeader('🏏 1st INNINGS — ${_team1Ctrl.text} BATTING'),
+            _addButton('+ ADD BATTER', () => _addBatter(_t1Innings1Batting, 'Team 1 (1st)')),
+            ..._t1Innings1Batting.asMap().entries.map((e) => _batterCard(e.value, e.key, _t1Innings1Batting)).toList(),
+
+            _sectionHeader('🎯 1st INNINGS — ${_team2Ctrl.text} BOWLING'),
+            _addButton('+ ADD BOWLER', () => _addBowler(_t2Innings1Bowling, 'Team 2 (1st)')),
+            ..._t2Innings1Bowling.asMap().entries.map((e) => _bowlerCard(e.value, e.key, _t2Innings1Bowling)).toList(),
+
+            const Divider(height: 30),
+
+            _sectionHeader('🏏 2nd INNINGS — ${_team2Ctrl.text} BATTING'),
+            _addButton('+ ADD BATTER', () => _addBatter(_t2Innings1Batting, 'Team 2 (2nd)')),
+            ..._t2Innings1Batting.asMap().entries.map((e) => _batterCard(e.value, e.key, _t2Innings1Batting)).toList(),
+
+            _sectionHeader('🎯 2nd INNINGS — ${_team1Ctrl.text} BOWLING'),
+            _addButton('+ ADD BOWLER', () => _addBowler(_t1Innings1Bowling, 'Team 1 (2nd)')),
+            ..._t1Innings1Bowling.asMap().entries.map((e) => _bowlerCard(e.value, e.key, _t1Innings1Bowling)).toList(),
+
+            const Divider(height: 30),
+
+            _sectionHeader('🏏 3rd INNINGS — ${_team1Ctrl.text} BATTING'),
+            _addButton('+ ADD BATTER', () => _addBatter(_t1Innings2Batting, 'Team 1 (3rd)')),
+            ..._t1Innings2Batting.asMap().entries.map((e) => _batterCard(e.value, e.key, _t1Innings2Batting)).toList(),
+
+            _sectionHeader('🎯 3rd INNINGS — ${_team2Ctrl.text} BOWLING'),
+            _addButton('+ ADD BOWLER', () => _addBowler(_t2Innings2Bowling, 'Team 2 (3rd)')),
+            ..._t2Innings2Bowling.asMap().entries.map((e) => _bowlerCard(e.value, e.key, _t2Innings2Bowling)).toList(),
+
+            const Divider(height: 30),
+
+            _sectionHeader('🏏 4th INNINGS — ${_team2Ctrl.text} BATTING'),
+            _addButton('+ ADD BATTER', () => _addBatter(_t2Innings2Batting, 'Team 2 (4th)')),
+            ..._t2Innings2Batting.asMap().entries.map((e) => _batterCard(e.value, e.key, _t2Innings2Batting)).toList(),
+
+            _sectionHeader('🎯 4th INNINGS — ${_team1Ctrl.text} BOWLING'),
+            _addButton('+ ADD BOWLER', () => _addBowler(_t1Innings2Bowling, 'Team 1 (4th)')),
+            ..._t1Innings2Bowling.asMap().entries.map((e) => _bowlerCard(e.value, e.key, _t1Innings2Bowling)).toList(),
+          ],
 
           const SizedBox(height: 24),
 
@@ -203,17 +314,47 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     );
   }
 
+  Widget _formatChip(String format) {
+    bool isSelected = _matchFormat == format;
+    return GestureDetector(
+      onTap: () => setState(() => _matchFormat = format),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF0A1931) : Colors.grey[200],
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF0A1931) : Colors.grey[400]!,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            format,
+            style: TextStyle(
+              color: isSelected ? Colors.white : Colors.black87,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _textField(TextEditingController ctrl, String label) {
     return TextField(
       controller: ctrl,
+      onChanged: (val) => setState(() {}),
       decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
     );
   }
 
   Widget _sectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0A1931))),
+      padding: const EdgeInsets.only(bottom: 10, top: 10),
+      child: Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF0A1931))),
     );
   }
 
@@ -229,7 +370,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     );
   }
 
-  Widget _batterCard(Map<String, dynamic> batter, int index, int team) {
+  Widget _batterCard(Map<String, dynamic> batter, int index, List<Map<String, dynamic>> list) {
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: Padding(
@@ -241,19 +382,11 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
                 Expanded(child: Text(batter['name'] ?? 'Batter', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
                 IconButton(
                   icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
-                  onPressed: () => _editBatter(batter, index, team),
+                  onPressed: () => _editBatter(batter, index, list),
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-                  onPressed: () {
-                    setState(() {
-                      if (team == 1) {
-                        _team1Batting.removeAt(index);
-                      } else {
-                        _team2Batting.removeAt(index);
-                      }
-                    });
-                  },
+                  onPressed: () => setState(() => list.removeAt(index)),
                 ),
               ],
             ),
@@ -280,7 +413,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     );
   }
 
-  Widget _bowlerCard(Map<String, dynamic> bowler, int index, int team) {
+  Widget _bowlerCard(Map<String, dynamic> bowler, int index, List<Map<String, dynamic>> list) {
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: Padding(
@@ -292,19 +425,11 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
                 Expanded(child: Text(bowler['name'] ?? 'Bowler', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))),
                 IconButton(
                   icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
-                  onPressed: () => _editBowler(bowler, index, team),
+                  onPressed: () => _editBowler(bowler, index, list),
                 ),
                 IconButton(
                   icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-                  onPressed: () {
-                    setState(() {
-                      if (team == 2) {
-                        _team2Bowling.removeAt(index);
-                      } else {
-                        _team1Bowling.removeAt(index);
-                      }
-                    });
-                  },
+                  onPressed: () => setState(() => list.removeAt(index)),
                 ),
               ],
             ),
@@ -338,7 +463,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     );
   }
 
-  void _addBatter(int team) {
+  void _addBatter(List<Map<String, dynamic>> list, String teamLabel) {
     final nameCtrl = TextEditingController();
     final howOutCtrl = TextEditingController();
     final rCtrl = TextEditingController();
@@ -350,7 +475,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('Add Batter (Team $team)'),
+        title: Text('Add Batter ($teamLabel)'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -375,7 +500,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0A1931)),
             onPressed: () {
               setState(() {
-                final batter = {
+                list.add({
                   'name': nameCtrl.text.trim(),
                   'howOut': howOutCtrl.text.trim(),
                   'r': rCtrl.text.trim(),
@@ -383,12 +508,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
                   '4s': foursCtrl.text.trim(),
                   '6s': sixesCtrl.text.trim(),
                   'sr': srCtrl.text.trim(),
-                };
-                if (team == 1) {
-                  _team1Batting.add(batter);
-                } else {
-                  _team2Batting.add(batter);
-                }
+                });
               });
               Navigator.pop(context);
             },
@@ -399,7 +519,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     );
   }
 
-  void _editBatter(Map<String, dynamic> batter, int index, int team) {
+  void _editBatter(Map<String, dynamic> batter, int index, List<Map<String, dynamic>> list) {
     final nameCtrl = TextEditingController(text: batter['name'] ?? '');
     final howOutCtrl = TextEditingController(text: batter['howOut'] ?? '');
     final rCtrl = TextEditingController(text: batter['r'] ?? '');
@@ -436,7 +556,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0A1931)),
             onPressed: () {
               setState(() {
-                final updated = {
+                list[index] = {
                   'name': nameCtrl.text.trim(),
                   'howOut': howOutCtrl.text.trim(),
                   'r': rCtrl.text.trim(),
@@ -445,11 +565,6 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
                   '6s': sixesCtrl.text.trim(),
                   'sr': srCtrl.text.trim(),
                 };
-                if (team == 1) {
-                  _team1Batting[index] = updated;
-                } else {
-                  _team2Batting[index] = updated;
-                }
               });
               Navigator.pop(context);
             },
@@ -460,7 +575,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     );
   }
 
-  void _addBowler(int team) {
+  void _addBowler(List<Map<String, dynamic>> list, String teamLabel) {
     final nameCtrl = TextEditingController();
     final oCtrl = TextEditingController();
     final mCtrl = TextEditingController();
@@ -470,7 +585,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text('Add Bowler (Team $team)'),
+        title: Text('Add Bowler ($teamLabel)'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -493,18 +608,13 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0A1931)),
             onPressed: () {
               setState(() {
-                final bowler = {
+                list.add({
                   'name': nameCtrl.text.trim(),
                   'o': oCtrl.text.trim(),
                   'm': mCtrl.text.trim(),
                   'r': rCtrl.text.trim(),
                   'w': wCtrl.text.trim(),
-                };
-                if (team == 2) {
-                  _team2Bowling.add(bowler);
-                } else {
-                  _team1Bowling.add(bowler);
-                }
+                });
               });
               Navigator.pop(context);
             },
@@ -515,7 +625,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     );
   }
 
-  void _editBowler(Map<String, dynamic> bowler, int index, int team) {
+  void _editBowler(Map<String, dynamic> bowler, int index, List<Map<String, dynamic>> list) {
     final nameCtrl = TextEditingController(text: bowler['name'] ?? '');
     final oCtrl = TextEditingController(text: bowler['o'] ?? '');
     final mCtrl = TextEditingController(text: bowler['m'] ?? '');
@@ -548,18 +658,13 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF0A1931)),
             onPressed: () {
               setState(() {
-                final updated = {
+                list[index] = {
                   'name': nameCtrl.text.trim(),
                   'o': oCtrl.text.trim(),
                   'm': mCtrl.text.trim(),
                   'r': rCtrl.text.trim(),
                   'w': wCtrl.text.trim(),
                 };
-                if (team == 2) {
-                  _team2Bowling[index] = updated;
-                } else {
-                  _team1Bowling[index] = updated;
-                }
               });
               Navigator.pop(context);
             },
