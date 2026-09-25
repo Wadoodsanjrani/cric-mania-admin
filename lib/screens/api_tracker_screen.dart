@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/cricket_api_service.dart';
-import 'update_match_screen.dart';
 
 class ApiTrackerScreen extends StatefulWidget {
   const ApiTrackerScreen({super.key});
@@ -12,11 +11,11 @@ class ApiTrackerScreen extends StatefulWidget {
 
 class _ApiTrackerScreenState extends State<ApiTrackerScreen> {
   final CricketApiService _apiService = CricketApiService();
-  List<Map<String, dynamic>> _liveMatches = [];
+  List<Map<String, dynamic>> _matches = [];
   bool _loading = false;
   String _errorMsg = '';
+  String _filter = 'all'; // 'live' ya 'all'
 
-  // ─── TRACKED MATCHES ───
   List<String> _trackedMatchIds = [];
 
   @override
@@ -36,17 +35,40 @@ class _ApiTrackerScreenState extends State<ApiTrackerScreen> {
     });
   }
 
-  // ─── FETCH LIVE MATCHES FROM API ───
+  // ─── FETCH LIVE MATCHES ───
   Future<void> _fetchLiveMatches() async {
     setState(() {
       _loading = true;
       _errorMsg = '';
+      _filter = 'live';
     });
 
     try {
       final matches = await _apiService.getCurrentMatches();
       setState(() {
-        _liveMatches = matches;
+        _matches = matches;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMsg = 'Error: $e';
+        _loading = false;
+      });
+    }
+  }
+
+  // ─── FETCH ALL MATCHES ───
+  Future<void> _fetchAllMatches() async {
+    setState(() {
+      _loading = true;
+      _errorMsg = '';
+      _filter = 'all';
+    });
+
+    try {
+      final matches = await _apiService.getAllMatches();
+      setState(() {
+        _matches = matches;
         _loading = false;
       });
     } catch (e) {
@@ -78,7 +100,7 @@ class _ApiTrackerScreenState extends State<ApiTrackerScreen> {
         setState(() => _loading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Match track nahi hua'),
+            content: Text('Match track nahi hua (live nahi hai shayad)'),
             backgroundColor: Colors.red,
           ),
         );
@@ -123,7 +145,7 @@ class _ApiTrackerScreenState extends State<ApiTrackerScreen> {
         content: TextField(
           controller: idCtrl,
           decoration: const InputDecoration(
-            labelText: 'Match ID (e.g. abc123)',
+            labelText: 'Match ID',
             border: OutlineInputBorder(),
           ),
         ),
@@ -139,11 +161,47 @@ class _ApiTrackerScreenState extends State<ApiTrackerScreen> {
             onPressed: () async {
               if (idCtrl.text.trim().isEmpty) return;
               Navigator.pop(context);
-              await _trackMatch(idCtrl.text.trim(), 'Match ID: ${idCtrl.text.trim()}');
+              await _trackMatch(idCtrl.text.trim(), 'Match');
             },
             child: const Text('Add', style: TextStyle(color: Colors.white)),
           ),
         ],
+      ),
+    );
+  }
+
+  // ─── MATCH STATUS BADGE ───
+  Widget _statusBadge(Map<String, dynamic> match) {
+    bool matchStarted = match['matchStarted'] ?? false;
+    bool matchEnded = match['matchEnded'] ?? false;
+
+    Color color;
+    String label;
+
+    if (matchEnded) {
+      color = Colors.grey;
+      label = 'ENDED';
+    } else if (matchStarted) {
+      color = Colors.redAccent;
+      label = 'LIVE';
+    } else {
+      color = Colors.orange;
+      label = 'UPCOMING';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -162,7 +220,7 @@ class _ApiTrackerScreenState extends State<ApiTrackerScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // ─── TAREEQA 3: MANUAL MATCH ID ───
+          // ─── ADD BY MATCH ID ───
           Card(
             color: Colors.blue[50],
             child: ListTile(
@@ -179,44 +237,64 @@ class _ApiTrackerScreenState extends State<ApiTrackerScreen> {
 
           const SizedBox(height: 12),
 
-          // ─── TAREEQA 1 & 2: LIVE MATCHES ───
+          // ─── 3 BUTTONS ───
           Row(
             children: [
               Expanded(
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0A1931),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    backgroundColor: _filter == 'live'
+                        ? const Color(0xFF0A1931)
+                        : Colors.grey[400],
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  icon: const Icon(Icons.refresh, color: Colors.white),
+                  icon: const Icon(Icons.refresh, color: Colors.white, size: 18),
                   label: const Text(
-                    'Live Matches',
-                    style: TextStyle(color: Colors.white),
+                    'Live',
+                    style: TextStyle(color: Colors.white, fontSize: 12),
                   ),
                   onPressed: _loading ? null : _fetchLiveMatches,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
+              Expanded(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        _filter == 'all' ? Colors.blue : Colors.grey[400],
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  icon: const Icon(Icons.list, color: Colors.white, size: 18),
+                  label: const Text(
+                    'All Matches',
+                    style: TextStyle(color: Colors.white, fontSize: 12),
+                  ),
+                  onPressed: _loading ? null : _fetchAllMatches,
+                ),
+              ),
+              const SizedBox(width: 6),
               Expanded(
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  icon: const Icon(Icons.play_arrow, color: Colors.white),
+                  icon: const Icon(Icons.play_arrow,
+                      color: Colors.white, size: 18),
                   label: const Text(
-                    'Auto Track All',
-                    style: TextStyle(color: Colors.white),
+                    'Auto All',
+                    style: TextStyle(color: Colors.white, fontSize: 12),
                   ),
                   onPressed: _loading
                       ? null
                       : () async {
-                          if (_liveMatches.isEmpty) {
+                          if (_matches.isEmpty) {
                             await _fetchLiveMatches();
                           }
-                          for (var match in _liveMatches) {
+                          for (var match in _matches) {
                             final id = match['id']?.toString() ?? '';
-                            if (id.isNotEmpty && !_trackedMatchIds.contains(id)) {
+                            if (id.isNotEmpty &&
+                                !_trackedMatchIds.contains(id)) {
                               await _apiService.syncMatchToFirebase(id);
                               _trackedMatchIds.add(id);
                             }
@@ -236,6 +314,7 @@ class _ApiTrackerScreenState extends State<ApiTrackerScreen> {
 
           const SizedBox(height: 16),
 
+          // ─── LOADING ───
           if (_loading)
             const Center(
               child: Padding(
@@ -244,6 +323,7 @@ class _ApiTrackerScreenState extends State<ApiTrackerScreen> {
               ),
             ),
 
+          // ─── ERROR ───
           if (_errorMsg.isNotEmpty)
             Card(
               color: Colors.red[50],
@@ -256,113 +336,161 @@ class _ApiTrackerScreenState extends State<ApiTrackerScreen> {
               ),
             ),
 
-          // ─── LIVE MATCHES LIST ───
-          if (_liveMatches.isNotEmpty) ...[
-            const Text(
-              'LIVE MATCHES',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF0A1931),
+          // ─── FILTER INFO ───
+          if (_matches.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                _filter == 'live'
+                    ? 'LIVE MATCHES (${_matches.length})'
+                    : 'ALL MATCHES (${_matches.length})',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF0A1931),
+                ),
               ),
             ),
-            const SizedBox(height: 8),
-            ..._liveMatches.map((match) {
-              final id = match['id']?.toString() ?? '';
-              final name = match['name']?.toString() ?? 'Unknown Match';
-              final status = match['status']?.toString() ?? 'LIVE';
-              final isTracked = _trackedMatchIds.contains(id);
 
-              return Card(
-                margin: const EdgeInsets.only(bottom: 10),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
+          // ─── MATCHES LIST ───
+          ..._matches.map((match) {
+            final id = match['id']?.toString() ?? '';
+            final name = match['name']?.toString() ?? 'Unknown Match';
+            final status = match['status']?.toString() ?? '';
+            final venue = match['venue']?.toString() ?? '';
+            final dateTimeGMT = match['dateTimeGMT']?.toString() ?? '';
+            final isTracked = _trackedMatchIds.contains(id);
+
+            return Card(
+              margin: const EdgeInsets.only(bottom: 10),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ─── NAME + BADGE ───
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
+                        _statusBadge(match),
+                      ],
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    // ─── VENUE ───
+                    if (venue.isNotEmpty)
                       Text(
-                        'Status: $status',
+                        '📍 $venue',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 11,
                           color: Colors.grey[700],
                         ),
                       ),
-                      const SizedBox(height: 4),
+
+                    // ─── DATE ───
+                    if (dateTimeGMT.isNotEmpty)
                       Text(
-                        'ID: $id',
+                        '📅 ${dateTimeGMT.substring(0, 10)}',
                         style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.grey[500],
+                          fontSize: 11,
+                          color: Colors.grey[700],
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
+
+                    // ─── STATUS ───
+                    if (status.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          status,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey[600],
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+
+                    const SizedBox(height: 6),
+
+                    // ─── MATCH ID ───
+                    Text(
+                      'ID: $id',
+                      style: TextStyle(
+                        fontSize: 9,
+                        color: Colors.grey[400],
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    // ─── TRACK BUTTON ───
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isTracked
+                                  ? Colors.grey
+                                  : Colors.redAccent,
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 8),
+                            ),
+                            icon: Icon(
+                              isTracked ? Icons.check : Icons.track_changes,
+                              color: Colors.white,
+                              size: 16,
+                            ),
+                            label: Text(
+                              isTracked ? 'TRACKED' : 'TRACK',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                            onPressed: isTracked
+                                ? null
+                                : () => _trackMatch(id, name),
+                          ),
+                        ),
+                        if (isTracked) ...[
+                          const SizedBox(width: 6),
                           Expanded(
                             child: ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: isTracked
-                                    ? Colors.grey
-                                    : Colors.redAccent,
-                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                backgroundColor: Colors.blue,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 8),
                               ),
-                              icon: Icon(
-                                isTracked ? Icons.check : Icons.track_changes,
-                                color: Colors.white,
-                                size: 18,
-                              ),
-                              label: Text(
-                                isTracked ? 'TRACKED' : 'TRACK',
-                                style: const TextStyle(
+                              icon: const Icon(Icons.sync,
+                                  color: Colors.white, size: 16),
+                              label: const Text(
+                                'SYNC',
+                                style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 12,
                                 ),
                               ),
-                              onPressed: isTracked
-                                  ? null
-                                  : () => _trackMatch(id, name),
+                              onPressed: () => _syncMatch(id),
                             ),
                           ),
-                          if (isTracked) ...[
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue,
-                                  padding: const EdgeInsets.symmetric(vertical: 8),
-                                ),
-                                icon: const Icon(
-                                  Icons.sync,
-                                  color: Colors.white,
-                                  size: 18,
-                                ),
-                                label: const Text(
-                                  'SYNC',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                                onPressed: () => _syncMatch(id),
-                              ),
-                            ),
-                          ],
                         ],
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                 ),
-              );
-            }).toList(),
-          ],
+              ),
+            );
+          }).toList(),
 
           const SizedBox(height: 24),
 
