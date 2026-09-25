@@ -6,7 +6,7 @@ class CricketApiService {
   // ═══════════════════════════════════════════════════
   // API KEY - e2d09548-e5d8-4fed-ae40-b647f0125197
   // ═══════════════════════════════════════════════════
-  static const String _apiKey = 'YOUR_API_KEY_HERE';
+  static const String _apiKey = 'e2d09548-e5d8-4fed-ae40-b647f0125197';
   static const String _baseUrl = 'https://api.cricapi.com/v1';
 
   // ─── CURRENT MATCHES ───
