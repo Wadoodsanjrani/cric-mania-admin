@@ -9,7 +9,7 @@ class CricketApiService {
   static const String _apiKey = 'e2d09548-e5d8-4fed-ae40-b647f0125197';
   static const String _baseUrl = 'https://api.cricapi.com/v1';
 
-  // ─── CURRENT MATCHES ───
+  // ─── CURRENT MATCHES (LIVE + RECENT) ───
   Future<List<Map<String, dynamic>>> getCurrentMatches() async {
     try {
       final response = await http.get(
@@ -25,6 +25,26 @@ class CricketApiService {
       return [];
     } catch (e) {
       print('Error fetching matches: $e');
+      return [];
+    }
+  }
+
+  // ─── ALL MATCHES (UPCOMING + LIVE + RECENT) ───
+  Future<List<Map<String, dynamic>>> getAllMatches() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/matches?apikey=$_apiKey&offset=0'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['status'] == 'success' && data['data'] != null) {
+          return List<Map<String, dynamic>>.from(data['data']);
+        }
+      }
+      return [];
+    } catch (e) {
+      print('Error fetching all matches: $e');
       return [];
     }
   }
@@ -70,14 +90,19 @@ class CricketApiService {
       List scores = scorecard['score'] ?? [];
       if (scores.isNotEmpty) {
         firebaseData['score1'] = _extractScore(scores, 0);
-        firebaseData['score2'] = scores.length > 1 ? _extractScore(scores, 1) : '';
+        firebaseData['score2'] =
+            scores.length > 1 ? _extractScore(scores, 1) : '';
       }
 
       if (scorecard['scorecard'] != null) {
-        firebaseData['team1Batting'] = _extractBatting(scorecard['scorecard'], 0);
-        firebaseData['team2Batting'] = _extractBatting(scorecard['scorecard'], 1);
-        firebaseData['team1Bowling'] = _extractBowling(scorecard['scorecard'], 0);
-        firebaseData['team2Bowling'] = _extractBowling(scorecard['scorecard'], 1);
+        firebaseData['team1Batting'] =
+            _extractBatting(scorecard['scorecard'], 0);
+        firebaseData['team2Batting'] =
+            _extractBatting(scorecard['scorecard'], 1);
+        firebaseData['team1Bowling'] =
+            _extractBowling(scorecard['scorecard'], 0);
+        firebaseData['team2Bowling'] =
+            _extractBowling(scorecard['scorecard'], 1);
       }
 
       await FirebaseFirestore.instance
@@ -92,6 +117,7 @@ class CricketApiService {
     }
   }
 
+  // ─── FORMAT DETECT ───
   String _detectFormat(String matchName) {
     String name = matchName.toLowerCase();
     if (name.contains('test')) return 'TEST';
@@ -100,12 +126,14 @@ class CricketApiService {
     return 'ODI';
   }
 
+  // ─── SCORE EXTRACT ───
   String _extractScore(List scores, int index) {
     if (index >= scores.length) return '';
     var score = scores[index];
     return "${score['r'] ?? 0}/${score['w'] ?? 0} (${score['o'] ?? 0})";
   }
 
+  // ─── BATTING EXTRACT ───
   List<Map<String, dynamic>> _extractBatting(List scorecard, int inningsIndex) {
     List<Map<String, dynamic>> batting = [];
     if (inningsIndex >= scorecard.length) return batting;
@@ -127,6 +155,7 @@ class CricketApiService {
     return batting;
   }
 
+  // ─── BOWLING EXTRACT ───
   List<Map<String, dynamic>> _extractBowling(List scorecard, int inningsIndex) {
     List<Map<String, dynamic>> bowling = [];
     if (inningsIndex >= scorecard.length) return bowling;
