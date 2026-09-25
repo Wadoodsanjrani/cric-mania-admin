@@ -3,7 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'matches_screen.dart';
 import 'news_screen.dart';
-import 'login_screen.dart'; // <-- YE LINE ADD KI HAI
+import 'login_screen.dart';
+import 'api_tracker_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -26,7 +27,7 @@ class DashboardScreen extends StatelessWidget {
               if (context.mounted) {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (_) => LoginScreen()), // <-- YAHAN SE const HATAYA HAI
+                  MaterialPageRoute(builder: (_) => LoginScreen()),
                 );
               }
             },
@@ -61,6 +62,12 @@ class DashboardScreen extends StatelessWidget {
             '📰 Manage News',
             Icons.newspaper,
             const NewsScreen(),
+          ),
+          _actionTile(
+            context,
+            '🔴 API Match Tracker',
+            Icons.sync_alt,
+            const ApiTrackerScreen(),
           ),
         ],
       ),
