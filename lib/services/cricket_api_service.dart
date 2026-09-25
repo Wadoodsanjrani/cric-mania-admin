@@ -4,10 +4,22 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CricketApiService {
   // ═══════════════════════════════════════════════════
-  // API KEY - e2d09548-e5d8-4fed-ae40-b647f0125197
+  // API KEY - cricketdata.org - 38c4dbd1-b304-4f71-9ed0-2ca8982379a4
   // ═══════════════════════════════════════════════════
-  static const String _apiKey = 'e2d09548-e5d8-4fed-ae40-b647f0125197';
-  static const String _baseUrl = 'https://api.cricapi.com/v1';
+  static const String _apiKey = '38c4dbd1-b304-4f71-9ed0-2ca8982379a4';
+  static const String _baseUrl = 'https://api.cricketdata.org/v1';
+
+  // ═══════════════════════════════════════════════════
+  // FILTER: SIRF INTL + PSL
+  // ═══════════════════════════════════════════════════
+  bool _isIntlOrPSL(Map<String, dynamic> match) {
+    String name = (match['name']?? match['series']?? '').toString().toLowerCase();
+    String type = (match['matchType']?? '').toString().toLowerCase();
+    if (name.contains('psl') || name.contains('pakistan super league')) return true;
+    if (name.contains('county') || name.contains('blast') || name.contains('one day cup') || name.contains('royal london') || name.contains('vitality')) return false;
+    if (type == 't20i' || type == 'odi' || type == 'test') return true;
+    return false;
+  }
 
   // ─── CURRENT MATCHES (LIVE + RECENT) ───
   Future<List<Map<String, dynamic>>> getCurrentMatches() async {
@@ -18,8 +30,9 @@ class CricketApiService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        if (data['status'] == 'success' && data['data'] != null) {
-          return List<Map<String, dynamic>>.from(data['data']);
+        if (data['status'] == 'success' && data['data']!= null) {
+          List<Map<String, dynamic>> all = List<Map<String, dynamic>>.from(data['data']);
+          return all.where((m) => _isIntlOrPSL(m)).toList();
         }
       }
       return [];
@@ -38,8 +51,9 @@ class CricketApiService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        if (data['status'] == 'success' && data['data'] != null) {
-          return List<Map<String, dynamic>>.from(data['data']);
+        if (data['status'] == 'success' && data['data']!= null) {
+          List<Map<String, dynamic>> all = List<Map<String, dynamic>>.from(data['data']);
+          return all.where((m) => _isIntlOrPSL(m)).toList();
         }
       }
       return [];
@@ -58,7 +72,7 @@ class CricketApiService {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        if (data['status'] == 'success' && data['data'] != null) {
+        if (data['status'] == 'success' && data['data']!= null) {
           return data['data'];
         }
       }
@@ -76,25 +90,25 @@ class CricketApiService {
       if (scorecard == null) return false;
 
       Map<String, dynamic> firebaseData = {
-        'team1': scorecard['teams']?[0] ?? 'Team 1',
-        'team2': scorecard['teams']?[1] ?? 'Team 2',
-        'status': scorecard['status'] ?? 'LIVE',
-        'tournament': scorecard['name'] ?? '',
-        'format': _detectFormat(scorecard['name'] ?? ''),
+        'team1': scorecard['teams']?[0]?? 'Team 1',
+        'team2': scorecard['teams']?[1]?? 'Team 2',
+        'status': scorecard['status']?? 'LIVE',
+        'tournament': scorecard['name']?? '',
+        'format': _detectFormat(scorecard['name']?? ''),
         'apiMatchId': apiMatchId,
         'apiTracked': true,
         'lastSync': DateTime.now().millisecondsSinceEpoch,
         'timestamp': DateTime.now().millisecondsSinceEpoch,
       };
 
-      List scores = scorecard['score'] ?? [];
+      List scores = scorecard['score']?? [];
       if (scores.isNotEmpty) {
         firebaseData['score1'] = _extractScore(scores, 0);
         firebaseData['score2'] =
-            scores.length > 1 ? _extractScore(scores, 1) : '';
+            scores.length > 1? _extractScore(scores, 1) : '';
       }
 
-      if (scorecard['scorecard'] != null) {
+      if (scorecard['scorecard']!= null) {
         firebaseData['team1Batting'] =
             _extractBatting(scorecard['scorecard'], 0);
         firebaseData['team2Batting'] =
@@ -106,9 +120,9 @@ class CricketApiService {
       }
 
       await FirebaseFirestore.instance
-          .collection('matches')
-          .doc(apiMatchId)
-          .set(firebaseData, SetOptions(merge: true));
+         .collection('matches')
+         .doc(apiMatchId)
+         .set(firebaseData, SetOptions(merge: true));
 
       return true;
     } catch (e) {
@@ -130,7 +144,7 @@ class CricketApiService {
   String _extractScore(List scores, int index) {
     if (index >= scores.length) return '';
     var score = scores[index];
-    return "${score['r'] ?? 0}/${score['w'] ?? 0} (${score['o'] ?? 0})";
+    return "${score['r']?? 0}/${score['w']?? 0} (${score['o']?? 0})";
   }
 
   // ─── BATTING EXTRACT ───
@@ -139,17 +153,17 @@ class CricketApiService {
     if (inningsIndex >= scorecard.length) return batting;
 
     var innings = scorecard[inningsIndex];
-    List batsmen = innings['batting'] ?? [];
+    List batsmen = innings['batting']?? [];
 
     for (var b in batsmen) {
       batting.add({
-        'name': b['batsman']?['name'] ?? '',
-        'howOut': b['dismissal']?.toString() ?? '',
-        'r': b['r']?.toString() ?? '0',
-        'b': b['b']?.toString() ?? '0',
-        '4s': b['4s']?.toString() ?? '0',
-        '6s': b['6s']?.toString() ?? '0',
-        'sr': b['sr']?.toString() ?? '0',
+        'name': b['batsman']?['name']?? '',
+        'howOut': b['dismissal']?.toString()?? '',
+        'r': b['r']?.toString()?? '0',
+        'b': b['b']?.toString()?? '0',
+        '4s': b['4s']?.toString()?? '0',
+        '6s': b['6s']?.toString()?? '0',
+        'sr': b['sr']?.toString()?? '0',
       });
     }
     return batting;
@@ -161,15 +175,15 @@ class CricketApiService {
     if (inningsIndex >= scorecard.length) return bowling;
 
     var innings = scorecard[inningsIndex];
-    List bowlers = innings['bowling'] ?? [];
+    List bowlers = innings['bowling']?? [];
 
     for (var b in bowlers) {
       bowling.add({
-        'name': b['bowler']?['name'] ?? '',
-        'o': b['o']?.toString() ?? '0',
-        'm': b['m']?.toString() ?? '0',
-        'r': b['r']?.toString() ?? '0',
-        'w': b['w']?.toString() ?? '0',
+        'name': b['bowler']?['name']?? '',
+        'o': b['o']?.toString()?? '0',
+        'm': b['m']?.toString()?? '0',
+        'r': b['r']?.toString()?? '0',
+        'w': b['w']?.toString()?? '0',
       });
     }
     return bowling;
