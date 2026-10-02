@@ -91,10 +91,17 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
         _tossCtrl.text = data['toss'] ?? '';
         _manOfTheMatchCtrl.text = data['manOfTheMatch'] ?? '';
 
-        _matchStatus =
-            (data['status'] ?? 'LIVE').toString().toUpperCase() == 'LIVE'
-                ? 'live'
-                : 'result';
+        // ✅ 3 statuses handle karo
+        final statusStr =
+            (data['status'] ?? 'LIVE').toString().toUpperCase();
+        if (statusStr == 'LIVE') {
+          _matchStatus = 'live';
+        } else if (statusStr == 'UPCOMING') {
+          _matchStatus = 'upcoming';
+        } else {
+          _matchStatus = 'result';
+        }
+
         _matchFormat = data['format'] ?? 'ODI';
 
         // ✅ Playing XI, Bench, Staff load
@@ -163,13 +170,23 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     setState(() => _loading = true);
 
     try {
+      // ✅ Status: LIVE / UPCOMING / RESULT
+      String statusValue;
+      if (_matchStatus == 'live') {
+        statusValue = 'LIVE';
+      } else if (_matchStatus == 'upcoming') {
+        statusValue = 'UPCOMING';
+      } else {
+        statusValue = 'RESULT';
+      }
+
       Map<String, dynamic> data = {
         'tournament': _tournamentCtrl.text.trim(),
         'team1': _team1Ctrl.text.trim(),
         'team2': _team2Ctrl.text.trim(),
         'score1': _score1Ctrl.text.trim(),
         'score2': _score2Ctrl.text.trim(),
-        'status': _matchStatus == 'live' ? 'LIVE' : 'RESULT',
+        'status': statusValue,
         'format': _matchFormat,
         'result': _resultCtrl.text.trim(),
         // ✅ NEW fields
@@ -266,30 +283,40 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           ),
           const SizedBox(height: 16),
 
+          // ═══════════════════════════════════════════════
+          // ✅ STATUS: 3 OPTIONS (LIVE / RESULT / UPCOMING)
+          // ═══════════════════════════════════════════════
           const Text('Match Status:',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 8),
-          Row(
+          Column(
             children: [
-              Expanded(
-                child: RadioListTile<String>(
-                  title: const Text('🔴 LIVE'),
-                  value: 'live',
-                  groupValue: _matchStatus,
-                  onChanged: (val) => setState(() => _matchStatus = val!),
-                  activeColor: Colors.redAccent,
-                  contentPadding: EdgeInsets.zero,
-                ),
+              RadioListTile<String>(
+                title: const Text('🔴 LIVE'),
+                value: 'live',
+                groupValue: _matchStatus,
+                onChanged: (val) => setState(() => _matchStatus = val!),
+                activeColor: Colors.redAccent,
+                contentPadding: EdgeInsets.zero,
+                dense: true,
               ),
-              Expanded(
-                child: RadioListTile<String>(
-                  title: const Text('✅ RESULT'),
-                  value: 'result',
-                  groupValue: _matchStatus,
-                  onChanged: (val) => setState(() => _matchStatus = val!),
-                  activeColor: Colors.green,
-                  contentPadding: EdgeInsets.zero,
-                ),
+              RadioListTile<String>(
+                title: const Text('✅ RESULT'),
+                value: 'result',
+                groupValue: _matchStatus,
+                onChanged: (val) => setState(() => _matchStatus = val!),
+                activeColor: Colors.green,
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+              ),
+              RadioListTile<String>(
+                title: const Text('🗓️ UPCOMING'),
+                value: 'upcoming',
+                groupValue: _matchStatus,
+                onChanged: (val) => setState(() => _matchStatus = val!),
+                activeColor: Colors.orange,
+                contentPadding: EdgeInsets.zero,
+                dense: true,
               ),
             ],
           ),
@@ -469,7 +496,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           const SizedBox(height: 24),
 
           // ═══════════════════════════════════════════════
-          // ✅ NEW: PLAYING XI SECTION
+          // ✅ PLAYING XI SECTION
           // ═══════════════════════════════════════════════
           const Divider(height: 40, thickness: 2),
           const Text(
@@ -506,7 +533,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           const Divider(height: 40, thickness: 2),
 
           // ═══════════════════════════════════════════════
-          // ✅ NEW: BENCH SECTION
+          // ✅ BENCH SECTION
           // ═══════════════════════════════════════════════
           const Text(
             '🪑 BENCH',
@@ -542,7 +569,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           const Divider(height: 40, thickness: 2),
 
           // ═══════════════════════════════════════════════
-          // ✅ NEW: STAFF SECTION
+          // ✅ STAFF SECTION
           // ═══════════════════════════════════════════════
           const Text(
             '👔 STAFF',
@@ -749,7 +776,6 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     );
   }
 
-  // ✅ NEW: Simple player card (Playing XI, Bench, Staff)
   Widget _simplePlayerCard(
       Map<String, dynamic> player, int index, List<Map<String, dynamic>> list) {
     return Card(
@@ -1108,7 +1134,6 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     );
   }
 
-  // ✅ NEW: Add Simple Player (Playing XI, Bench, Staff)
   void _addSimplePlayer(List<Map<String, dynamic>> list, String teamLabel) {
     final nameCtrl = TextEditingController();
     final roleCtrl = TextEditingController();

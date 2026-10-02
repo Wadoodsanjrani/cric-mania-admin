@@ -78,13 +78,23 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
     setState(() => _loading = true);
 
     try {
+      // ✅ Status: LIVE / UPCOMING / RESULT
+      String statusValue;
+      if (_matchStatus == 'live') {
+        statusValue = 'LIVE';
+      } else if (_matchStatus == 'upcoming') {
+        statusValue = 'UPCOMING';
+      } else {
+        statusValue = 'RESULT';
+      }
+
       Map<String, dynamic> data = {
         'tournament': _tournamentCtrl.text.trim(),
         'team1': _team1Ctrl.text.trim(),
         'team2': _team2Ctrl.text.trim(),
         'score1': _score1Ctrl.text.trim(),
         'score2': _score2Ctrl.text.trim(),
-        'status': _matchStatus == 'live' ? 'LIVE' : 'RESULT',
+        'status': statusValue,
         'format': _matchFormat,
         'result': _resultCtrl.text.trim(),
         'toss': _tossCtrl.text.trim(),
@@ -168,31 +178,40 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
           ),
           const SizedBox(height: 16),
 
-          // ─── STATUS ───
+          // ═══════════════════════════════════════════════
+          // ✅ STATUS: 3 OPTIONS (LIVE / RESULT / UPCOMING)
+          // ═══════════════════════════════════════════════
           const Text('Match Status:',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 8),
-          Row(
+          Column(
             children: [
-              Expanded(
-                child: RadioListTile<String>(
-                  title: const Text('🔴 LIVE'),
-                  value: 'live',
-                  groupValue: _matchStatus,
-                  onChanged: (val) => setState(() => _matchStatus = val!),
-                  activeColor: Colors.redAccent,
-                  contentPadding: EdgeInsets.zero,
-                ),
+              RadioListTile<String>(
+                title: const Text('🔴 LIVE'),
+                value: 'live',
+                groupValue: _matchStatus,
+                onChanged: (val) => setState(() => _matchStatus = val!),
+                activeColor: Colors.redAccent,
+                contentPadding: EdgeInsets.zero,
+                dense: true,
               ),
-              Expanded(
-                child: RadioListTile<String>(
-                  title: const Text('✅ RESULT'),
-                  value: 'result',
-                  groupValue: _matchStatus,
-                  onChanged: (val) => setState(() => _matchStatus = val!),
-                  activeColor: Colors.green,
-                  contentPadding: EdgeInsets.zero,
-                ),
+              RadioListTile<String>(
+                title: const Text('✅ RESULT'),
+                value: 'result',
+                groupValue: _matchStatus,
+                onChanged: (val) => setState(() => _matchStatus = val!),
+                activeColor: Colors.green,
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+              ),
+              RadioListTile<String>(
+                title: const Text('🗓️ UPCOMING'),
+                value: 'upcoming',
+                groupValue: _matchStatus,
+                onChanged: (val) => setState(() => _matchStatus = val!),
+                activeColor: Colors.orange,
+                contentPadding: EdgeInsets.zero,
+                dense: true,
               ),
             ],
           ),
@@ -205,7 +224,7 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
           _textField(_team2Ctrl, 'Team 2 Name'),
           const SizedBox(height: 12),
 
-          // ✅ NEW: Toss aur Man of the Match
+          // ✅ Toss aur Man of the Match
           _textField(_tossCtrl, 'Toss'),
           const SizedBox(height: 12),
           _textField(_manOfTheMatchCtrl, 'Man of the Match'),
@@ -389,7 +408,7 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
           const SizedBox(height: 24),
 
           // ═══════════════════════════════════════════════
-          // ✅ NEW: PLAYING XI SECTION
+          // ✅ PLAYING XI SECTION
           // ═══════════════════════════════════════════════
           const Divider(height: 40, thickness: 2),
           const Text(
@@ -399,7 +418,6 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Team 1 Playing XI
           _sectionHeader(
               '${_team1Ctrl.text.isEmpty ? "Team 1" : _team1Ctrl.text} Playing XI'),
           _addButton('+ ADD PLAYER (Team 1 XI)',
@@ -412,7 +430,6 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
 
           const SizedBox(height: 20),
 
-          // Team 2 Playing XI
           _sectionHeader(
               '${_team2Ctrl.text.isEmpty ? "Team 2" : _team2Ctrl.text} Playing XI'),
           _addButton('+ ADD PLAYER (Team 2 XI)',
@@ -426,7 +443,7 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
           const Divider(height: 40, thickness: 2),
 
           // ═══════════════════════════════════════════════
-          // ✅ NEW: BENCH SECTION
+          // ✅ BENCH SECTION
           // ═══════════════════════════════════════════════
           const Text(
             '🪑 BENCH',
@@ -460,7 +477,7 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
           const Divider(height: 40, thickness: 2),
 
           // ═══════════════════════════════════════════════
-          // ✅ NEW: STAFF SECTION
+          // ✅ STAFF SECTION
           // ═══════════════════════════════════════════════
           const Text(
             '👔 STAFF',
@@ -658,7 +675,6 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
     );
   }
 
-  // ✅ NEW: Simple player card (Playing XI, Bench, Staff ke liye)
   Widget _simplePlayerCard(
       Map<String, dynamic> player, int index, List<Map<String, dynamic>> list) {
     return Card(
@@ -859,7 +875,6 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
     );
   }
 
-  // ✅ NEW: Add Simple Player (Playing XI, Bench, Staff ke liye)
   void _addSimplePlayer(List<Map<String, dynamic>> list, String teamLabel) {
     final nameCtrl = TextEditingController();
     final roleCtrl = TextEditingController();
