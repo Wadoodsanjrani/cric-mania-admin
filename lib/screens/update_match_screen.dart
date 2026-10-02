@@ -15,10 +15,11 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
   final _team2Ctrl = TextEditingController();
   final _score1Ctrl = TextEditingController();
   final _score2Ctrl = TextEditingController();
-  // ✅ TEST ke liye extra scores
   final _score3Ctrl = TextEditingController();
   final _score4Ctrl = TextEditingController();
   final _resultCtrl = TextEditingController();
+  final _tossCtrl = TextEditingController();
+  final _manOfTheMatchCtrl = TextEditingController();
 
   String _matchStatus = 'live';
   String _matchFormat = 'ODI';
@@ -39,6 +40,14 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
   List<Map<String, dynamic>> _t2Innings2Batting = [];
   List<Map<String, dynamic>> _t1Innings2Bowling = [];
 
+  // ─── PLAYING XI, BENCH, STAFF ───
+  List<Map<String, dynamic>> _team1PlayingXI = [];
+  List<Map<String, dynamic>> _team2PlayingXI = [];
+  List<Map<String, dynamic>> _team1Bench = [];
+  List<Map<String, dynamic>> _team2Bench = [];
+  List<Map<String, dynamic>> _team1Staff = [];
+  List<Map<String, dynamic>> _team2Staff = [];
+
   bool _loading = true;
 
   @override
@@ -57,6 +66,8 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     _score3Ctrl.dispose();
     _score4Ctrl.dispose();
     _resultCtrl.dispose();
+    _tossCtrl.dispose();
+    _manOfTheMatchCtrl.dispose();
     super.dispose();
   }
 
@@ -74,15 +85,37 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
         _team2Ctrl.text = data['team2'] ?? '';
         _score1Ctrl.text = data['score1'] ?? '';
         _score2Ctrl.text = data['score2'] ?? '';
-        // ✅ TEST ke liye extra scores load karo
         _score3Ctrl.text = data['score3'] ?? '';
         _score4Ctrl.text = data['score4'] ?? '';
         _resultCtrl.text = data['result'] ?? '';
+        _tossCtrl.text = data['toss'] ?? '';
+        _manOfTheMatchCtrl.text = data['manOfTheMatch'] ?? '';
+
         _matchStatus =
             (data['status'] ?? 'LIVE').toString().toUpperCase() == 'LIVE'
                 ? 'live'
                 : 'result';
         _matchFormat = data['format'] ?? 'ODI';
+
+        // ✅ Playing XI, Bench, Staff load
+        _team1PlayingXI = List<Map<String, dynamic>>.from(
+            (data['team1PlayingXI'] ?? [])
+                .map((e) => Map<String, dynamic>.from(e)));
+        _team2PlayingXI = List<Map<String, dynamic>>.from(
+            (data['team2PlayingXI'] ?? [])
+                .map((e) => Map<String, dynamic>.from(e)));
+        _team1Bench = List<Map<String, dynamic>>.from(
+            (data['team1Bench'] ?? [])
+                .map((e) => Map<String, dynamic>.from(e)));
+        _team2Bench = List<Map<String, dynamic>>.from(
+            (data['team2Bench'] ?? [])
+                .map((e) => Map<String, dynamic>.from(e)));
+        _team1Staff = List<Map<String, dynamic>>.from(
+            (data['team1Staff'] ?? [])
+                .map((e) => Map<String, dynamic>.from(e)));
+        _team2Staff = List<Map<String, dynamic>>.from(
+            (data['team2Staff'] ?? [])
+                .map((e) => Map<String, dynamic>.from(e)));
 
         if (_matchFormat == 'TEST') {
           final i1 = data['innings1'] ?? {};
@@ -139,10 +172,18 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
         'status': _matchStatus == 'live' ? 'LIVE' : 'RESULT',
         'format': _matchFormat,
         'result': _resultCtrl.text.trim(),
+        // ✅ NEW fields
+        'toss': _tossCtrl.text.trim(),
+        'manOfTheMatch': _manOfTheMatchCtrl.text.trim(),
+        'team1PlayingXI': _team1PlayingXI,
+        'team2PlayingXI': _team2PlayingXI,
+        'team1Bench': _team1Bench,
+        'team2Bench': _team2Bench,
+        'team1Staff': _team1Staff,
+        'team2Staff': _team2Staff,
       };
 
       if (_matchFormat == 'TEST') {
-        // ✅ TEST: 4 scores bhi save karo
         data['score3'] = _score3Ctrl.text.trim();
         data['score4'] = _score4Ctrl.text.trim();
 
@@ -219,7 +260,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           Row(
             children: [
               Expanded(child: _formatChip('ODI')),
-              Expanded(child: _formatChip('T20')), // ✅ T20I → T20
+              Expanded(child: _formatChip('T20')),
               Expanded(child: _formatChip('TEST')),
             ],
           ),
@@ -261,11 +302,13 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           _textField(_team2Ctrl, 'Team 2 Name'),
           const SizedBox(height: 12),
 
-          // ═══════════════════════════════════════════════
-          // ✅ SCORE FIELDS — Format ke hisaab se
-          // ═══════════════════════════════════════════════
+          // ✅ NEW: Toss aur Man of the Match
+          _textField(_tossCtrl, 'Toss'),
+          const SizedBox(height: 12),
+          _textField(_manOfTheMatchCtrl, 'Man of the Match'),
+          const SizedBox(height: 12),
+
           if (_matchFormat == 'TEST') ...[
-            // TEST: 4 scores
             _textField(
               _score1Ctrl,
               '${_team1Ctrl.text.isEmpty ? "Team 1" : _team1Ctrl.text} — 1st Innings Score',
@@ -286,7 +329,6 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
               '${_team2Ctrl.text.isEmpty ? "Team 2" : _team2Ctrl.text} — 2nd Innings Score',
             ),
           ] else ...[
-            // ODI/T20: 2 scores
             _textField(
               _score1Ctrl,
               '${_team1Ctrl.text.isEmpty ? "Team 1" : _team1Ctrl.text} Score',
@@ -426,6 +468,115 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
 
           const SizedBox(height: 24),
 
+          // ═══════════════════════════════════════════════
+          // ✅ NEW: PLAYING XI SECTION
+          // ═══════════════════════════════════════════════
+          const Divider(height: 40, thickness: 2),
+          const Text(
+            '🏏 PLAYING XI',
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0A1931)),
+          ),
+          const SizedBox(height: 16),
+
+          _sectionHeader(
+              '${_team1Ctrl.text.isEmpty ? "Team 1" : _team1Ctrl.text} Playing XI'),
+          _addButton('+ ADD PLAYER (Team 1 XI)',
+              () => _addSimplePlayer(_team1PlayingXI, 'Team 1 XI')),
+          ..._team1PlayingXI
+              .asMap()
+              .entries
+              .map((e) => _simplePlayerCard(e.value, e.key, _team1PlayingXI))
+              .toList(),
+
+          const SizedBox(height: 20),
+
+          _sectionHeader(
+              '${_team2Ctrl.text.isEmpty ? "Team 2" : _team2Ctrl.text} Playing XI'),
+          _addButton('+ ADD PLAYER (Team 2 XI)',
+              () => _addSimplePlayer(_team2PlayingXI, 'Team 2 XI')),
+          ..._team2PlayingXI
+              .asMap()
+              .entries
+              .map((e) => _simplePlayerCard(e.value, e.key, _team2PlayingXI))
+              .toList(),
+
+          const Divider(height: 40, thickness: 2),
+
+          // ═══════════════════════════════════════════════
+          // ✅ NEW: BENCH SECTION
+          // ═══════════════════════════════════════════════
+          const Text(
+            '🪑 BENCH',
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0A1931)),
+          ),
+          const SizedBox(height: 16),
+
+          _sectionHeader(
+              '${_team1Ctrl.text.isEmpty ? "Team 1" : _team1Ctrl.text} Bench'),
+          _addButton('+ ADD PLAYER (Team 1 Bench)',
+              () => _addSimplePlayer(_team1Bench, 'Team 1 Bench')),
+          ..._team1Bench
+              .asMap()
+              .entries
+              .map((e) => _simplePlayerCard(e.value, e.key, _team1Bench))
+              .toList(),
+
+          const SizedBox(height: 20),
+
+          _sectionHeader(
+              '${_team2Ctrl.text.isEmpty ? "Team 2" : _team2Ctrl.text} Bench'),
+          _addButton('+ ADD PLAYER (Team 2 Bench)',
+              () => _addSimplePlayer(_team2Bench, 'Team 2 Bench')),
+          ..._team2Bench
+              .asMap()
+              .entries
+              .map((e) => _simplePlayerCard(e.value, e.key, _team2Bench))
+              .toList(),
+
+          const Divider(height: 40, thickness: 2),
+
+          // ═══════════════════════════════════════════════
+          // ✅ NEW: STAFF SECTION
+          // ═══════════════════════════════════════════════
+          const Text(
+            '👔 STAFF',
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0A1931)),
+          ),
+          const SizedBox(height: 16),
+
+          _sectionHeader(
+              '${_team1Ctrl.text.isEmpty ? "Team 1" : _team1Ctrl.text} Staff'),
+          _addButton('+ ADD STAFF (Team 1)',
+              () => _addSimplePlayer(_team1Staff, 'Team 1 Staff')),
+          ..._team1Staff
+              .asMap()
+              .entries
+              .map((e) => _simplePlayerCard(e.value, e.key, _team1Staff))
+              .toList(),
+
+          const SizedBox(height: 20),
+
+          _sectionHeader(
+              '${_team2Ctrl.text.isEmpty ? "Team 2" : _team2Ctrl.text} Staff'),
+          _addButton('+ ADD STAFF (Team 2)',
+              () => _addSimplePlayer(_team2Staff, 'Team 2 Staff')),
+          ..._team2Staff
+              .asMap()
+              .entries
+              .map((e) => _simplePlayerCard(e.value, e.key, _team2Staff))
+              .toList(),
+
+          const SizedBox(height: 24),
+
           _textField(_resultCtrl, 'Result'),
 
           const SizedBox(height: 30),
@@ -503,7 +654,8 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
         icon: const Icon(Icons.add),
         label: Text(label),
         onPressed: onTap,
-        style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF0A1931)),
+        style:
+            OutlinedButton.styleFrom(foregroundColor: const Color(0xFF0A1931)),
       ),
     );
   }
@@ -592,6 +744,30 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // ✅ NEW: Simple player card (Playing XI, Bench, Staff)
+  Widget _simplePlayerCard(
+      Map<String, dynamic> player, int index, List<Map<String, dynamic>> list) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: const Color(0xFF0A1931),
+          child: Text('${index + 1}',
+              style: const TextStyle(color: Colors.white, fontSize: 12)),
+        ),
+        title: Text(player['name'] ?? '',
+            style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: (player['role'] ?? '').toString().isNotEmpty
+            ? Text(player['role'])
+            : null,
+        trailing: IconButton(
+          icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+          onPressed: () => setState(() => list.removeAt(index)),
         ),
       ),
     );
@@ -780,7 +956,8 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
               });
               Navigator.pop(context);
             },
-            child: const Text('Update', style: TextStyle(color: Colors.white)),
+            child:
+                const Text('Update', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -923,7 +1100,55 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
               });
               Navigator.pop(context);
             },
-            child: const Text('Update', style: TextStyle(color: Colors.white)),
+            child:
+                const Text('Update', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ NEW: Add Simple Player (Playing XI, Bench, Staff)
+  void _addSimplePlayer(List<Map<String, dynamic>> list, String teamLabel) {
+    final nameCtrl = TextEditingController();
+    final roleCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Add ($teamLabel)'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(labelText: 'Name')),
+              TextField(
+                  controller: roleCtrl,
+                  decoration: const InputDecoration(
+                      labelText: 'Role (e.g. Batsman, Captain, Coach)')),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0A1931)),
+            onPressed: () {
+              if (nameCtrl.text.trim().isEmpty) return;
+              setState(() {
+                list.add({
+                  'name': nameCtrl.text.trim(),
+                  'role': roleCtrl.text.trim(),
+                });
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Add', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
