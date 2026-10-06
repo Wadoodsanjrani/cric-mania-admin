@@ -1,11 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Leaderboard Service
-/// Firestore path: tournaments/{tournamentId}/leaderboard/{userId}
+/// Firestore path: tournaments/{tid}/leaderboard/{userId}
 /// Document: {
 ///   userId, userName, totalPoints,
 ///   matchPoints: { matchId: points },
 ///   rank, previousRank, fpodCount,
+///   status: 'active' | 'eliminated',
 ///   lastUpdatedAt
 /// }
 class LeaderboardService {
@@ -19,11 +20,23 @@ class LeaderboardService {
           .doc(tournamentId)
           .collection('leaderboard');
 
-  /// Stream leaderboard sorted by rank
+  /// Stream full leaderboard (all users, sorted by rank)
   Stream<List<Map<String, dynamic>>> streamLeaderboard(
     String tournamentId,
   ) {
     return _leaderboard(tournamentId)
+        .orderBy('rank', descending: false)
+        .snapshots()
+        .map((snap) =>
+            snap.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList());
+  }
+
+  /// Stream only active users (excludes eliminated)
+  Stream<List<Map<String, dynamic>>> streamActiveLeaderboard(
+    String tournamentId,
+  ) {
+    return _leaderboard(tournamentId)
+        .where('status', isEqualTo: 'active')
         .orderBy('rank', descending: false)
         .snapshots()
         .map((snap) =>
@@ -59,6 +72,9 @@ class LeaderboardService {
         'rank': 0,
         'previousRank': 0,
         'fpodCount': 0,
+        'status': 'active',
+        'eliminatedAt': null,
+        'eliminatedAfterMatchId': null,
         'lastUpdatedAt': Timestamp.fromDate(DateTime.now()),
       });
     } else {
@@ -77,28 +93,95 @@ class LeaderboardService {
     }
   }
 
-  /// Save a full sorted leaderboard (called after tie-breaker calculation)
-  /// Entries: List of { userId, userName, totalPoints, rank, previousRank, fpodCount, matchPoints }
+  /// Recalculate ranks for all active users
+  /// Tie-breaker: Points DESC → Previous Rank ASC → Name ASC
+  Future<void> recalculateRanks(String tournamentId) async {
+    // 1. Get all active users
+    final snap = await _leaderboard(tournamentId)
+        .where('status', isEqualTo: 'active')
+        .get();
+
+    if (snap.docs.isEmpty) return;
+
+    // 2. Convert to list of maps
+    final entries = snap.docs
+        .map((doc) => <String, dynamic>{
+              'id': doc.id,
+              ...doc.data(),
+            })
+        .toList();
+
+    // 3. Sort: Points DESC → Previous Rank ASC → Name ASC
+    entries.sort((a, b) {
+      final ap = (a['totalPoints'] ?? 0) as int;
+      final bp = (b['totalPoints'] ?? 0) as int;
+      if (ap != bp) return bp.compareTo(ap);
+
+      final ar = (a['previousRank'] ?? 999999) as int;
+      final br = (b['previousRank'] ?? 999999) as int;
+      if (ar != br) return ar.compareTo(br);
+
+      final an = (a['userName'] ?? '') as String;
+      final bn = (b['userName'] ?? '') as String;
+      return an.toLowerCase().compareTo(bn.toLowerCase());
+    });
+
+    // 4. Assign new ranks (batch update)
+    const batchSize = 500;
+    for (var i = 0; i < entries.length; i += batchSize) {
+      final batch = _firestore.batch();
+      final chunk = entries.skip(i).take(batchSize).toList();
+
+      for (var j = 0; j < chunk.length; j++) {
+        final entry = chunk[j];
+        final newRank = i + j + 1;
+        final oldRank = (entry['rank'] ?? 0) as int;
+        final ref = _leaderboard(tournamentId).doc(entry['id'] as String);
+        batch.update(ref, {
+          'previousRank': oldRank == 0 ? newRank : oldRank,
+          'rank': newRank,
+        });
+      }
+
+      await batch.commit();
+    }
+  }
+
+  /// Save a full sorted leaderboard (bulk update)
   Future<void> saveFullLeaderboard({
     required String tournamentId,
     required List<Map<String, dynamic>> entries,
   }) async {
-    final batch = _firestore.batch();
-    for (final e in entries) {
-      final ref = _leaderboard(tournamentId).doc(e['userId'] as String);
-      batch.set(ref, {
-        ...e,
-        'lastUpdatedAt': Timestamp.fromDate(DateTime.now()),
-      }, SetOptions(merge: true));
+    const batchSize = 500;
+    for (var i = 0; i < entries.length; i += batchSize) {
+      final batch = _firestore.batch();
+      final chunk = entries.skip(i).take(batchSize);
+      for (final e in chunk) {
+        final ref = _leaderboard(tournamentId).doc(e['userId'] as String);
+        batch.set(
+          ref,
+          {
+            ...e,
+            'lastUpdatedAt': Timestamp.fromDate(DateTime.now()),
+          },
+          SetOptions(merge: true),
+        );
+      }
+      await batch.commit();
     }
-    await batch.commit();
   }
 
   /// Delete entire leaderboard (reset)
   Future<void> clearLeaderboard(String tournamentId) async {
     final docs = await _leaderboard(tournamentId).get();
-    for (final d in docs.docs) {
-      await d.reference.delete();
+    const batchSize = 500;
+    for (var i = 0; i < docs.docs.length; i += batchSize) {
+      final batch = _firestore.batch();
+      final chunk = docs.docs.skip(i).take(batchSize);
+      for (final d in chunk) {
+        batch.delete(d.reference);
+      }
+      await batch.commit();
     }
   }
 }

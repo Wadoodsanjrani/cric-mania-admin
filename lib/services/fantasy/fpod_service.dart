@@ -1,9 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// FPOD Service — Fantasy Participant of the Day
-/// Aaj ke match(es) mein sabse zyada points wala user
-/// Firestore path: tournaments/{tournamentId}/fpod/{dateKey}
-/// Document: { userId, userName, points, date, rank }
+/// Firestore path: tournaments/{tid}/fpod/{dateKey}
 class FpodService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -13,49 +11,36 @@ class FpodService {
           .doc(tournamentId)
           .collection('fpod');
 
-  /// Date key: yyyy-MM-dd
   String dateKey(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
-  /// Calculate FPOD for a given date from leaderboard matchPoints
-  /// Tie-breaker: Points → Higher rank wala. First match: Alphabetical.
-  Future<Map<String, dynamic>?> calculateAndSaveFpod({
+  Future<Map<String, dynamic>?> recalculateForDate({
     required String tournamentId,
     required DateTime date,
-    required bool isFirstMatchOfTournament,
   }) async {
-    // Get all leaderboard entries
     final lbSnap = await _firestore
         .collection('tournaments')
         .doc(tournamentId)
         .collection('leaderboard')
+        .where('status', isEqualTo: 'active')
         .get();
 
     if (lbSnap.docs.isEmpty) return null;
 
-    // Filter users who played today (matchPoints mein aaj ke match ki entry hai)
-    // For simplicity we treat all leaderboard users and their totalPoints
-    // — actual daily calculation user side pe hoti hai.
-    // Yahan hum sabse zyada totalPoints wala uthate hain as fallback.
-    final List<Map<String, dynamic>> entries = lbSnap.docs
-        .map((doc) => {'id': doc.id, ...doc.data()})
+    final entries = lbSnap.docs
+        .map((doc) => <String, dynamic>{'id': doc.id, ...doc.data()})
         .toList();
 
-    // Sort: points DESC → rank ASC → name ASC
     entries.sort((a, b) {
-      final pa = (a['totalPoints'] ?? 0) as int;
-      final pb = (b['totalPoints'] ?? 0) as int;
-      if (pa != pb) return pb.compareTo(pa); // higher points first
-
-      if (!isFirstMatchOfTournament) {
-        final ra = (a['rank'] ?? 999999) as int;
-        final rb = (b['rank'] ?? 999999) as int;
-        if (ra != rb) return ra.compareTo(rb);
-      }
-
-      final na = (a['userName'] ?? '') as String;
-      final nb = (b['userName'] ?? '') as String;
-      return na.toLowerCase().compareTo(nb.toLowerCase());
+      final ap = (a['totalPoints'] ?? 0) as int;
+      final bp = (b['totalPoints'] ?? 0) as int;
+      if (ap != bp) return bp.compareTo(ap);
+      final ar = (a['rank'] ?? 999999) as int;
+      final br = (b['rank'] ?? 999999) as int;
+      if (ar != br) return ar.compareTo(br);
+      final an = (a['userName'] ?? '') as String;
+      final bn = (b['userName'] ?? '') as String;
+      return an.toLowerCase().compareTo(bn.toLowerCase());
     });
 
     final top = entries.first;
@@ -64,9 +49,11 @@ class FpodService {
     final fpodData = {
       'userId': top['userId'] ?? top['id'],
       'userName': top['userName'] ?? '',
+      'userPhotoUrl': top['userPhotoUrl'] ?? '',
+      'userCity': top['userCity'] ?? '',
       'points': top['totalPoints'] ?? 0,
+      'rank': top['rank'] ?? 1,
       'date': key,
-      'rank': 1,
       'calculatedAt': Timestamp.fromDate(DateTime.now()),
     };
 
@@ -74,7 +61,6 @@ class FpodService {
     return fpodData;
   }
 
-  /// Get FPOD for a specific date
   Future<Map<String, dynamic>?> getFpod(
     String tournamentId,
     DateTime date,
@@ -83,12 +69,26 @@ class FpodService {
     return doc.exists ? doc.data() : null;
   }
 
-  /// Stream all FPOD entries (latest first)
+  Stream<Map<String, dynamic>?> streamLatestFpod(String tournamentId) {
+    return _fpod(tournamentId)
+        .orderBy('date', descending: true)
+        .limit(1)
+        .snapshots()
+        .map((snap) {
+      if (snap.docs.isEmpty) return null;
+      return {'id': snap.docs.first.id, ...snap.docs.first.data()};
+    });
+  }
+
   Stream<List<Map<String, dynamic>>> streamAllFpod(String tournamentId) {
     return _fpod(tournamentId)
         .orderBy('date', descending: true)
         .snapshots()
         .map((snap) =>
             snap.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList());
+  }
+
+  Future<void> deleteForDate(String tournamentId, DateTime date) async {
+    await _fpod(tournamentId).doc(dateKey(date)).delete();
   }
 }
