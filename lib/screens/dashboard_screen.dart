@@ -5,6 +5,7 @@ import 'matches_screen.dart';
 import 'news_screen.dart';
 import 'login_screen.dart';
 import 'api_tracker_screen.dart';
+import 'fantasy/fantasy_home_screen.dart';  // ← NAYA
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -68,6 +69,13 @@ class DashboardScreen extends StatelessWidget {
             '🔴 API Match Tracker',
             Icons.sync_alt,
             const ApiTrackerScreen(),
+          ),
+          // ↓↓↓ NAYA — Fantasy League button ↓↓↓
+          _actionTile(
+            context,
+            '🏆 Fantasy League',
+            Icons.emoji_events,
+            const FantasyHomeScreen(),
           ),
         ],
       ),

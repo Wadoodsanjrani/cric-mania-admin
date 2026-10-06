@@ -1,0 +1,233 @@
+import 'package:flutter/material.dart';
+import '../../models/fantasy/tournament_model.dart';
+import '../../services/fantasy/tournament_service.dart';
+import '../../services/fantasy/team_service.dart';
+import '../../services/fantasy/match_service.dart';
+
+/// Tournament Detail Screen — Teams, Matches, Overview tabs
+class TournamentDetailScreen extends StatefulWidget {
+  final String tournamentId;
+  const TournamentDetailScreen({super.key, required this.tournamentId});
+
+  @override
+  State<TournamentDetailScreen> createState() =>
+      _TournamentDetailScreenState();
+}
+
+class _TournamentDetailScreenState extends State<TournamentDetailScreen> {
+  final _tournamentService = TournamentService();
+  final _teamService = TeamService();
+  final _matchService = MatchService();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<TournamentModel?>(
+      stream: _tournamentService.streamOne(widget.tournamentId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final t = snapshot.data;
+        if (t == null) {
+          return Scaffold(
+            appBar: AppBar(
+              backgroundColor: const Color(0xFF0A1931),
+              iconTheme: const IconThemeData(color: Colors.white),
+            ),
+            body: const Center(child: Text('Tournament not found')),
+          );
+        }
+
+        return DefaultTabController(
+          length: 3,
+          child: Scaffold(
+            appBar: AppBar(
+              backgroundColor: const Color(0xFF0A1931),
+              iconTheme: const IconThemeData(color: Colors.white),
+              title: Text(
+                t.name,
+                style: const TextStyle(color: Colors.white),
+              ),
+              bottom: const TabBar(
+                indicatorColor: Colors.white,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.white70,
+                tabs: [
+                  Tab(text: 'Teams', icon: Icon(Icons.groups)),
+                  Tab(text: 'Matches', icon: Icon(Icons.sports_cricket)),
+                  Tab(text: 'Overview', icon: Icon(Icons.info_outline)),
+                ],
+              ),
+            ),
+            body: TabBarView(
+              children: [
+                _TeamsTab(
+                  tournamentId: widget.tournamentId,
+                  service: _teamService,
+                ),
+                _MatchesTab(
+                  tournamentId: widget.tournamentId,
+                  service: _matchService,
+                ),
+                _OverviewTab(tournament: t),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ─────────────────── Teams Tab ───────────────────
+class _TeamsTab extends StatelessWidget {
+  final String tournamentId;
+  final TeamService service;
+  const _TeamsTab({required this.tournamentId, required this.service});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+      stream: service.streamTeams(tournamentId),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final teams = snapshot.data!;
+        if (teams.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(
+                'Koi team nahi hai.\nJald hi + button add karenge.',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(12),
+          itemCount: teams.length,
+          itemBuilder: (context, i) {
+            final team = teams[i];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                leading: Text(
+                  team.flag.isEmpty ? '🏏' : team.flag,
+                  style: const TextStyle(fontSize: 28),
+                ),
+                title: Text(team.name),
+                subtitle: Text('ID: ${team.id.substring(0, 6)}...'),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+// ─────────────────── Matches Tab ───────────────────
+class _MatchesTab extends StatelessWidget {
+  final String tournamentId;
+  final MatchService service;
+  const _MatchesTab({required this.tournamentId, required this.service});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+      stream: service.streamMatches(tournamentId),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final matches = snapshot.data!;
+        if (matches.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(
+                'Koi match nahi hai.\nJald hi + button add karenge.',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(12),
+          itemCount: matches.length,
+          itemBuilder: (context, i) {
+            final m = matches[i];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              child: ListTile(
+                leading: const Icon(Icons.sports_cricket,
+                    color: Color(0xFF0A1931)),
+                title: Text('${m.team1Name} vs ${m.team2Name}'),
+                subtitle: Text(
+                  '${m.matchDate.day}/${m.matchDate.month}/${m.matchDate.year} • ${m.status}',
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+// ─────────────────── Overview Tab ───────────────────
+class _OverviewTab extends StatelessWidget {
+  final TournamentModel tournament;
+  const _OverviewTab({required this.tournament});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _row('Name', tournament.name),
+        _row('Format', tournament.format),
+        _row('Status', tournament.status),
+        _row('Start', _fmt(tournament.startDate)),
+        _row('End', _fmt(tournament.endDate)),
+        _row('Deadline', _fmt(tournament.deadline)),
+        if (tournament.winnerUserName != null)
+          _row('Winner', tournament.winnerUserName!),
+        _row('Created By', tournament.createdBy),
+      ],
+    );
+  }
+
+  Widget _row(String label, String value) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 110,
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                value,
+                style: const TextStyle(fontWeight: FontWeight.w500),
+              ),
+            ),
+          ],
+        ),
+      );
+
+  String _fmt(DateTime d) =>
+      '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+}

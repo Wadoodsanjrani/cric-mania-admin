@@ -50,3 +50,6 @@ app.*.map.json
 # Gradle cache (Android)
 android/.gradle/
 .gradle/
+
+# Local backups
+*.backup
