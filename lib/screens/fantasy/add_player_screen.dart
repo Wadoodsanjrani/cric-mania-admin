@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/fantasy/player_service.dart';
 
-/// Add Player Screen — team ke andar naya player add karne ke liye
+/// Add Player Screen — sirf naam, koi role nahi
 class AddPlayerScreen extends StatefulWidget {
   final String tournamentId;
   final String teamId;
@@ -22,8 +22,6 @@ class _AddPlayerScreenState extends State<AddPlayerScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _service = PlayerService();
-
-  String _role = 'Batter';
   bool _saving = false;
 
   @override
@@ -48,7 +46,6 @@ class _AddPlayerScreenState extends State<AddPlayerScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Team name context
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -75,6 +72,7 @@ class _AddPlayerScreenState extends State<AddPlayerScreen> {
 
             TextFormField(
               controller: _nameCtrl,
+              autofocus: true,
               decoration: const InputDecoration(
                 labelText: 'Player Name',
                 hintText: 'e.g. Babar Azam',
@@ -87,41 +85,9 @@ class _AddPlayerScreenState extends State<AddPlayerScreen> {
                 }
                 return null;
               },
+              onFieldSubmitted: (_) => _submit(),
             ),
-            const SizedBox(height: 16),
-
-            // Role selector — visual radio cards
-            const Text(
-              'Role',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: _roleCard(
-                    label: 'Batter',
-                    icon: Icons.sports_cricket,
-                    isSelected: _role == 'Batter',
-                    onTap: () => setState(() => _role = 'Batter'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _roleCard(
-                    label: 'Bowler',
-                    icon: Icons.sports_baseball,
-                    isSelected: _role == 'Bowler',
-                    onTap: () => setState(() => _role = 'Bowler'),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
 
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
@@ -137,58 +103,14 @@ class _AddPlayerScreenState extends State<AddPlayerScreen> {
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: Colors.white),
                     )
-                  : const Icon(Icons.check),
+                  : const Icon(Icons.add),
               label: Text(_saving ? 'Saving...' : 'Add Player'),
             ),
             const SizedBox(height: 12),
             const Text(
               'Tip: Ek hi screen se bar bar players add kar sakte hain. '
-              'Save hone ke baad ye screen wapas khulegi.',
+              'Save hone ke baad naam clear ho jayega, agla player daal dein.',
               style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _roleCard({
-    required String label,
-    required IconData icon,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFF0A1931)
-              : Colors.grey.shade100,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected
-                ? const Color(0xFF0A1931)
-                : Colors.grey.shade300,
-            width: 2,
-          ),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              size: 28,
-              color: isSelected ? Colors.white : const Color(0xFF0A1931),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : const Color(0xFF0A1931),
-              ),
             ),
           ],
         ),
@@ -205,7 +127,7 @@ class _AddPlayerScreenState extends State<AddPlayerScreen> {
         tournamentId: widget.tournamentId,
         teamId: widget.teamId,
         name: _nameCtrl.text.trim(),
-        role: _role,
+        role: 'Player',
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -214,9 +136,9 @@ class _AddPlayerScreenState extends State<AddPlayerScreen> {
             duration: const Duration(seconds: 2),
           ),
         );
-        // Clear name, keep screen open for next player
         _nameCtrl.clear();
         setState(() => _saving = false);
+        FocusScope.of(context).requestFocus(FocusNode());
       }
     } catch (e) {
       if (mounted) {

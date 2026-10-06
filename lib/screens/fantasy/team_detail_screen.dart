@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/fantasy/player_service.dart';
 import 'add_player_screen.dart';
 
-/// Team Detail Screen — team ke andar players list + add player
+/// Team Detail Screen — team ke andar players list (ek hi list)
 class TeamDetailScreen extends StatefulWidget {
   final String tournamentId;
   final String teamId;
@@ -76,26 +76,32 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
             );
           }
 
-          // Batter aur Bowler alag alag dikhao
-          final batters =
-              players.where((p) => p.role == 'Batter').toList();
-          final bowlers =
-              players.where((p) => p.role == 'Bowler').toList();
-
-          return ListView(
+          return ListView.builder(
             padding: const EdgeInsets.all(12),
-            children: [
-              if (batters.isNotEmpty) ...[
-                _sectionHeader(
-                    'Batters (${batters.length})', Icons.sports_cricket),
-                ...batters.map((p) => _playerTile(p)),
-                const SizedBox(height: 16),
-              ],
-              if (bowlers.isNotEmpty) ...[
-                _sectionHeader('Bowlers (${bowlers.length})', Icons.sports_baseball),
-                ...bowlers.map((p) => _playerTile(p)),
-              ],
-            ],
+            itemCount: players.length,
+            itemBuilder: (context, i) {
+              final player = players[i];
+              return Card(
+                margin: const EdgeInsets.only(bottom: 6),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor:
+                        const Color(0xFF0A1931).withValues(alpha: 0.1),
+                    child: Text(
+                      '${i + 1}',
+                      style: const TextStyle(
+                        color: Color(0xFF0A1931),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  title: Text(
+                    player.name,
+                    style: const TextStyle(fontWeight: FontWeight.w500),
+                  ),
+                ),
+              );
+            },
           );
         },
       ),
@@ -113,52 +119,6 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
               teamName: widget.teamName,
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _sectionHeader(String title, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8, top: 4),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: const Color(0xFF0A1931)),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF0A1931),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _playerTile(dynamic player) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 6),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: const Color(0xFF0A1931).withValues(alpha: 0.1),
-          child: Icon(
-            player.role == 'Batter'
-                ? Icons.sports_cricket
-                : Icons.sports_baseball,
-            color: const Color(0xFF0A1931),
-            size: 20,
-          ),
-        ),
-        title: Text(
-          player.name,
-          style: const TextStyle(fontWeight: FontWeight.w500),
-        ),
-        subtitle: Text(
-          player.role,
-          style: const TextStyle(fontSize: 12),
         ),
       ),
     );

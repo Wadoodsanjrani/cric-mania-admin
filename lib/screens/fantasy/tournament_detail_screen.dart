@@ -21,6 +21,7 @@ class _TournamentDetailScreenState extends State<TournamentDetailScreen> {
   final _tournamentService = TournamentService();
   final _teamService = TeamService();
   final _matchService = MatchService();
+  bool _deleting = false;
 
   @override
   Widget build(BuildContext context) {
@@ -53,6 +54,22 @@ class _TournamentDetailScreenState extends State<TournamentDetailScreen> {
                 t.name,
                 style: const TextStyle(color: Colors.white),
               ),
+              actions: [
+                IconButton(
+                  icon: _deleting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.delete_outline),
+                  tooltip: 'Delete Tournament',
+                  onPressed: _deleting ? null : () => _confirmDelete(t),
+                ),
+              ],
               bottom: const TabBar(
                 indicatorColor: Colors.white,
                 labelColor: Colors.white,
@@ -81,6 +98,51 @@ class _TournamentDetailScreenState extends State<TournamentDetailScreen> {
         );
       },
     );
+  }
+
+  Future<void> _confirmDelete(TournamentModel t) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Tournament?'),
+        content: Text(
+          'Kya aap "${t.name}" ko delete karna chahte hain?\n\n'
+          '⚠️ Ye saare Teams, Players, Matches, aur Stats bhi delete ho jayenge.\n'
+          'Ye action undo nahi ho sakta.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _deleting = true);
+    try {
+      await _tournamentService.deleteTournament(widget.tournamentId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tournament delete ho gaya!')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+        setState(() => _deleting = false);
+      }
+    }
   }
 }
 
