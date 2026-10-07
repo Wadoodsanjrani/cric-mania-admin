@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../services/image_helper.dart';
 import '../../services/fantasy/fpod_service.dart';
 import '../../services/fantasy/sponsor_service.dart';
+import 'fpod_history_screen.dart';
 
 /// FPOD Screen — Fantasy Participant of the Day (sponsored)
 class FpodScreen extends StatefulWidget {
@@ -200,6 +201,20 @@ class _FpodScreenState extends State<FpodScreen> {
               style: const TextStyle(color: Colors.white),
             ),
             actions: [
+              // ─── HISTORY BUTTON ───
+              IconButton(
+                icon: const Icon(Icons.history),
+                tooltip: 'FPOD History',
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => FpodHistoryScreen(
+                      tournamentId: widget.tournamentId,
+                      tournamentName: title,
+                    ),
+                  ),
+                ),
+              ),
               // Edit texts button
               IconButton(
                 icon: const Icon(Icons.edit),
