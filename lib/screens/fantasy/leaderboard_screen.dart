@@ -1,6 +1,7 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../services/image_helper.dart';
 import '../../services/fantasy/leaderboard_service.dart';
 import '../../services/fantasy/sponsor_service.dart';
 
@@ -21,7 +22,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   final _picker = ImagePicker();
   bool _uploading = false;
 
-  // â”€â”€â”€ Pick & upload image â”€â”€â”€
+  // ─── Pick & upload image ───
   Future<void> _pickAndUpload(String field) async {
     final XFile? picked = await _picker.pickImage(
       source: ImageSource.gallery,
@@ -58,7 +59,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     }
   }
 
-  // â”€â”€â”€ Remove image (with confirm) â”€â”€â”€
+  // ─── Remove image (with confirm) ───
   Future<void> _confirmRemove(String field, String label) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -107,7 +108,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     }
   }
 
-  // â”€â”€â”€ Bottom sheet with options â”€â”€â”€
+  // ─── Bottom sheet with options ───
   void _showImageOptions(String field, String label, bool hasImage) {
     showModalBottomSheet(
       context: context,
@@ -183,14 +184,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          config.cornerLogoUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => const Icon(
-                            Icons.image_not_supported,
-                            color: Colors.grey,
-                            size: 20,
-                          ),
+                        child: _base64Image(
+                          config.cornerLogoBase64,
+                          icon: Icons.image_not_supported,
                         ),
                       ),
                     ),
@@ -255,7 +251,35 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     );
   }
 
-  // â”€â”€â”€ Banner widget â”€â”€â”€
+  // ─── Helper: base64 image widget ───
+  Widget _base64Image(
+    String base64String, {
+    BoxFit fit = BoxFit.cover,
+    IconData icon = Icons.business,
+  }) {
+    if (base64String.isEmpty) {
+      return Center(
+        child: Icon(
+          icon,
+          color: const Color(0xFF0A1931).withValues(alpha: 0.3),
+          size: 24,
+        ),
+      );
+    }
+    return Image.memory(
+      ImageHelper.base64ToBytes(base64String),
+      fit: fit,
+      errorBuilder: (_, _, _) => Center(
+        child: Icon(
+          icon,
+          color: const Color(0xFF0A1931).withValues(alpha: 0.3),
+          size: 24,
+        ),
+      ),
+    );
+  }
+
+  // ─── Banner widget ───
   Widget _bannerWidget(SponsorConfig config) {
     return GestureDetector(
       onLongPress: () => _showImageOptions(
@@ -276,11 +300,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(14),
           child: config.hasBanner
-              ? Image.network(
-                  config.bannerUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => _bannerPlaceholder(),
-                )
+              ? _base64Image(config.bannerBase64)
               : _bannerPlaceholder(),
         ),
       ),
@@ -312,21 +332,21 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     );
   }
 
-  // â”€â”€â”€ Slots row â”€â”€â”€
+  // ─── Slots row ───
   Widget _slotsRow(SponsorConfig config) {
     return Row(
       children: [
-        Expanded(child: _slotWidget(config.slot1Url, 'slot1', 1)),
+        Expanded(child: _slotWidget(config.slot1Base64, 'slot1', 1)),
         const SizedBox(width: 8),
-        Expanded(child: _slotWidget(config.slot2Url, 'slot2', 2)),
+        Expanded(child: _slotWidget(config.slot2Base64, 'slot2', 2)),
         const SizedBox(width: 8),
-        Expanded(child: _slotWidget(config.slot3Url, 'slot3', 3)),
+        Expanded(child: _slotWidget(config.slot3Base64, 'slot3', 3)),
       ],
     );
   }
 
-  Widget _slotWidget(String url, String field, int number) {
-    final has = url.isNotEmpty;
+  Widget _slotWidget(String base64String, String field, int number) {
+    final has = base64String.isNotEmpty;
     return GestureDetector(
       onLongPress: () => _showImageOptions(field, 'Slot $number', has),
       child: Container(
@@ -345,11 +365,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(10),
           child: has
-              ? Image.network(
-                  url,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => _slotPlaceholder(number),
-                )
+              ? _base64Image(base64String)
               : _slotPlaceholder(number),
         ),
       ),
@@ -369,7 +385,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     );
   }
 
-  // â”€â”€â”€ Leaderboard list â”€â”€â”€
+  // ─── Leaderboard list ───
   Widget _leaderboardList() {
     return StreamBuilder<List<Map<String, dynamic>>>(
       stream: _leaderboardService.streamActiveLeaderboard(widget.tournamentId),
@@ -427,7 +443,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     );
   }
 
-  // â”€â”€â”€ Single leaderboard row â”€â”€â”€
+  // ─── Single leaderboard row ───
   Widget _leaderboardRow({
     required int rank,
     required String userName,
@@ -442,15 +458,15 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     if (rank == 1) {
       cardColor = const Color(0xFFFFF9E6);
       borderColor = const Color(0xFFD4AF37);
-      medalEmoji = 'ðŸ¥‡';
+      medalEmoji = '🥇';
     } else if (rank == 2) {
       cardColor = const Color(0xFFF5F5F5);
       borderColor = const Color(0xFFB0B0B0);
-      medalEmoji = 'ðŸ¥ˆ';
+      medalEmoji = '🥈';
     } else if (rank == 3) {
       cardColor = const Color(0xFFFDF3E7);
       borderColor = const Color(0xFFCD7F32);
-      medalEmoji = 'ðŸ¥‰';
+      medalEmoji = '🥉';
     }
 
     return Container(

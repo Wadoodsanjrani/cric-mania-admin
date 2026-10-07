@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../models/fantasy/tournament_model.dart';
+import '../../services/image_helper.dart';
 import '../../services/fantasy/tournament_service.dart';
 import '../../services/fantasy/sponsor_service.dart';
 
@@ -312,7 +313,7 @@ class _WinnerDeclareScreenState extends State<WinnerDeclareScreen> {
   }
 
   // ═══════════════════════════════════════════════════════════
-  // RADIO SELECTOR (Fixed — no Radio widget, no deprecation)
+  // RADIO SELECTOR
   // ═══════════════════════════════════════════════════════════
   Widget _radioSelector() {
     return Card(
@@ -379,6 +380,39 @@ class _WinnerDeclareScreenState extends State<WinnerDeclareScreen> {
   }
 
   // ═══════════════════════════════════════════════════════════
+  // Helper: base64 image widget
+  // ═══════════════════════════════════════════════════════════
+  Widget _base64Image(
+    String base64String, {
+    double? width,
+    double? height,
+    BoxFit fit = BoxFit.cover,
+    IconData fallbackIcon = Icons.business,
+    double fallbackSize = 20,
+  }) {
+    if (base64String.isEmpty) {
+      return SizedBox(
+        width: width,
+        height: height,
+        child: Icon(fallbackIcon,
+            color: Colors.grey, size: fallbackSize),
+      );
+    }
+    return Image.memory(
+      ImageHelper.base64ToBytes(base64String),
+      width: width,
+      height: height,
+      fit: fit,
+      errorBuilder: (_, _, _) => SizedBox(
+        width: width,
+        height: height,
+        child: Icon(fallbackIcon,
+            color: Colors.grey, size: fallbackSize),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // SPONSOR UPLOAD CARD
   // ═══════════════════════════════════════════════════════════
   Widget _sponsorUploadCard() {
@@ -386,19 +420,17 @@ class _WinnerDeclareScreenState extends State<WinnerDeclareScreen> {
       stream: _sponsorStream(),
       builder: (context, snap) {
         final config = snap.data;
-        final logoUrl = config?['cornerLogoUrl'] as String?;
+        final logoBase64 = config?['cornerLogoBase64'] as String?;
 
         return Card(
           child: ListTile(
-            leading: logoUrl != null && logoUrl.isNotEmpty
+            leading: logoBase64 != null && logoBase64.isNotEmpty
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(6),
-                    child: Image.network(
-                      logoUrl,
+                    child: _base64Image(
+                      logoBase64,
                       width: 48,
                       height: 48,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => _sponsorPlaceholder(),
                     ),
                   )
                 : _sponsorPlaceholder(),
@@ -407,7 +439,7 @@ class _WinnerDeclareScreenState extends State<WinnerDeclareScreen> {
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
             subtitle: Text(
-              logoUrl != null && logoUrl.isNotEmpty
+              logoBase64 != null && logoBase64.isNotEmpty
                   ? 'Tap to change sponsor logo'
                   : 'Tap to upload sponsor logo',
               style: const TextStyle(fontSize: 12),
@@ -461,7 +493,7 @@ class _WinnerDeclareScreenState extends State<WinnerDeclareScreen> {
     return StreamBuilder<Map<String, dynamic>?>(
       stream: _sponsorStream(),
       builder: (context, snap) {
-        final logoUrl = snap.data?['cornerLogoUrl'] as String?;
+        final logoBase64 = snap.data?['cornerLogoBase64'] as String?;
 
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
@@ -549,7 +581,7 @@ class _WinnerDeclareScreenState extends State<WinnerDeclareScreen> {
                   ],
                 ),
               ),
-              if (logoUrl != null && logoUrl.isNotEmpty)
+              if (logoBase64 != null && logoBase64.isNotEmpty)
                 Positioned(
                   top: 12,
                   right: 12,
@@ -561,16 +593,10 @@ class _WinnerDeclareScreenState extends State<WinnerDeclareScreen> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(4),
-                      child: Image.network(
-                        logoUrl,
+                      child: _base64Image(
+                        logoBase64,
                         width: 32,
                         height: 32,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => const SizedBox(
-                          width: 32,
-                          height: 32,
-                          child: Icon(Icons.business, size: 20),
-                        ),
                       ),
                     ),
                   ),
@@ -610,7 +636,7 @@ class _WinnerDeclareScreenState extends State<WinnerDeclareScreen> {
         return StreamBuilder<Map<String, dynamic>?>(
           stream: _sponsorStream(),
           builder: (context, sponsorSnap) {
-            final logoUrl = sponsorSnap.data?['cornerLogoUrl'] as String?;
+            final logoBase64 = sponsorSnap.data?['cornerLogoBase64'] as String?;
 
             return Container(
               margin: const EdgeInsets.only(bottom: 16),
@@ -683,7 +709,7 @@ class _WinnerDeclareScreenState extends State<WinnerDeclareScreen> {
                       ],
                     ),
                   ),
-                  if (logoUrl != null && logoUrl.isNotEmpty)
+                  if (logoBase64 != null && logoBase64.isNotEmpty)
                     Positioned(
                       top: 12,
                       right: 12,
@@ -695,16 +721,10 @@ class _WinnerDeclareScreenState extends State<WinnerDeclareScreen> {
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(4),
-                          child: Image.network(
-                            logoUrl,
+                          child: _base64Image(
+                            logoBase64,
                             width: 32,
                             height: 32,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => const SizedBox(
-                              width: 32,
-                              height: 32,
-                              child: Icon(Icons.business, size: 20),
-                            ),
                           ),
                         ),
                       ),

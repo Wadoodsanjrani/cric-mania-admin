@@ -1,25 +1,25 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import '../image_helper.dart';
 
-/// Sponsor Configuration Model
+/// Sponsor Configuration Model (Base64 version)
 class SponsorConfig {
-  final String bannerUrl;
-  final String slot1Url;
-  final String slot2Url;
-  final String slot3Url;
-  final String cornerLogoUrl;
-  final String fpodSponsorLogoUrl;
+  final String bannerBase64;
+  final String slot1Base64;
+  final String slot2Base64;
+  final String slot3Base64;
+  final String cornerLogoBase64;
+  final String fpodSponsorLogoBase64;
   final String fpodSponsorName;
   final String fpodCardTitle;
 
   SponsorConfig({
-    this.bannerUrl = '',
-    this.slot1Url = '',
-    this.slot2Url = '',
-    this.slot3Url = '',
-    this.cornerLogoUrl = '',
-    this.fpodSponsorLogoUrl = '',
+    this.bannerBase64 = '',
+    this.slot1Base64 = '',
+    this.slot2Base64 = '',
+    this.slot3Base64 = '',
+    this.cornerLogoBase64 = '',
+    this.fpodSponsorLogoBase64 = '',
     this.fpodSponsorName = '',
     this.fpodCardTitle = 'Player of the Day',
   });
@@ -27,12 +27,12 @@ class SponsorConfig {
   factory SponsorConfig.fromMap(Map<String, dynamic>? map) {
     if (map == null) return SponsorConfig();
     return SponsorConfig(
-      bannerUrl: map['bannerUrl'] ?? '',
-      slot1Url: map['slot1Url'] ?? '',
-      slot2Url: map['slot2Url'] ?? '',
-      slot3Url: map['slot3Url'] ?? '',
-      cornerLogoUrl: map['cornerLogoUrl'] ?? '',
-      fpodSponsorLogoUrl: map['fpodSponsorLogoUrl'] ?? '',
+      bannerBase64: map['bannerBase64'] ?? '',
+      slot1Base64: map['slot1Base64'] ?? '',
+      slot2Base64: map['slot2Base64'] ?? '',
+      slot3Base64: map['slot3Base64'] ?? '',
+      cornerLogoBase64: map['cornerLogoBase64'] ?? '',
+      fpodSponsorLogoBase64: map['fpodSponsorLogoBase64'] ?? '',
       fpodSponsorName: map['fpodSponsorName'] ?? '',
       fpodCardTitle: map['fpodCardTitle'] ?? 'Player of the Day',
     );
@@ -40,30 +40,28 @@ class SponsorConfig {
 
   Map<String, dynamic> toMap() {
     return {
-      'bannerUrl': bannerUrl,
-      'slot1Url': slot1Url,
-      'slot2Url': slot2Url,
-      'slot3Url': slot3Url,
-      'cornerLogoUrl': cornerLogoUrl,
-      'fpodSponsorLogoUrl': fpodSponsorLogoUrl,
+      'bannerBase64': bannerBase64,
+      'slot1Base64': slot1Base64,
+      'slot2Base64': slot2Base64,
+      'slot3Base64': slot3Base64,
+      'cornerLogoBase64': cornerLogoBase64,
+      'fpodSponsorLogoBase64': fpodSponsorLogoBase64,
       'fpodSponsorName': fpodSponsorName,
       'fpodCardTitle': fpodCardTitle,
       'updatedAt': Timestamp.fromDate(DateTime.now()),
     };
   }
 
-  bool get hasBanner => bannerUrl.isNotEmpty;
-  bool get hasCornerLogo => cornerLogoUrl.isNotEmpty;
-  bool get hasFpodSponsor => fpodSponsorLogoUrl.isNotEmpty ||
-      fpodSponsorName.isNotEmpty;
+  bool get hasBanner => bannerBase64.isNotEmpty;
+  bool get hasCornerLogo => cornerLogoBase64.isNotEmpty;
+  bool get hasFpodSponsor =>
+      fpodSponsorLogoBase64.isNotEmpty || fpodSponsorName.isNotEmpty;
 }
 
-/// Sponsor Service
+/// Sponsor Service (Base64 version — no Firebase Storage needed)
 /// Firestore path: tournaments/{tournamentId}/sponsors/config
-/// Storage path: sponsors/{tournamentId}/{fileName}
 class SponsorService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   DocumentReference<Map<String, dynamic>> _configDoc(String tournamentId) =>
       _firestore
@@ -88,11 +86,8 @@ class SponsorService {
   /// ─────────────────── Upload Methods ───────────────────
 
   /// Upload banner image
-  Future<String> uploadBanner(
-    String tournamentId,
-    File image,
-  ) async {
-    return _uploadImage(tournamentId, image, 'banner');
+  Future<String> uploadBanner(String tournamentId, File image) async {
+    return _uploadImage(tournamentId, image, 'bannerBase64');
   }
 
   /// Upload slot image (1, 2, or 3)
@@ -101,15 +96,12 @@ class SponsorService {
     File image,
     int slotNumber,
   ) async {
-    return _uploadImage(tournamentId, image, 'slot$slotNumber');
+    return _uploadImage(tournamentId, image, 'slot${slotNumber}Base64');
   }
 
   /// Upload corner logo
-  Future<String> uploadCornerLogo(
-    String tournamentId,
-    File image,
-  ) async {
-    return _uploadImage(tournamentId, image, 'corner_logo');
+  Future<String> uploadCornerLogo(String tournamentId, File image) async {
+    return _uploadImage(tournamentId, image, 'cornerLogoBase64');
   }
 
   /// Upload FPOD sponsor logo
@@ -117,78 +109,64 @@ class SponsorService {
     String tournamentId,
     File image,
   ) async {
-    return _uploadImage(tournamentId, image, 'fpod_sponsor');
+    return _uploadImage(tournamentId, image, 'fpodSponsorLogoBase64');
   }
 
-  /// Generic image upload + Firestore update
+  /// Generic image upload + Firestore update (base64)
   Future<String> _uploadImage(
     String tournamentId,
     File image,
     String fieldName,
   ) async {
-    final ext = image.path.split('.').last.toLowerCase();
-    final path =
-        'sponsors/$tournamentId/$fieldName.$ext';
+    // Convert to base64 (compressed)
+    final base64String = await ImageHelper.fileToBase64(image);
 
-    final ref = _storage.ref().child(path);
-    await ref.putFile(image);
-    final url = await ref.getDownloadURL();
+    // Safety check
+    if (!ImageHelper.isSafeForFirestore(base64String)) {
+      throw Exception(
+        'Image too large (${ImageHelper.base64SizeKB(base64String).toStringAsFixed(0)} KB). '
+        'Please choose a smaller image.',
+      );
+    }
 
     // Update Firestore
     await _configDoc(tournamentId).set(
       {
-        '${fieldName}Url': url,
+        fieldName: base64String,
         'updatedAt': Timestamp.fromDate(DateTime.now()),
       },
       SetOptions(merge: true),
     );
 
-    return url;
+    return base64String;
   }
 
   /// ─────────────────── Remove Methods ───────────────────
 
   Future<void> removeBanner(String tournamentId) async {
-    await _removeImage(tournamentId, 'banner');
+    await _removeImage(tournamentId, 'bannerBase64');
   }
 
-  Future<void> removeSlot(
-    String tournamentId,
-    int slotNumber,
-  ) async {
-    await _removeImage(tournamentId, 'slot$slotNumber');
+  Future<void> removeSlot(String tournamentId, int slotNumber) async {
+    await _removeImage(tournamentId, 'slot${slotNumber}Base64');
   }
 
   Future<void> removeCornerLogo(String tournamentId) async {
-    await _removeImage(tournamentId, 'corner_logo');
+    await _removeImage(tournamentId, 'cornerLogoBase64');
   }
 
   Future<void> removeFpodSponsorLogo(String tournamentId) async {
-    await _removeImage(tournamentId, 'fpod_sponsor');
+    await _removeImage(tournamentId, 'fpodSponsorLogoBase64');
   }
 
   Future<void> _removeImage(String tournamentId, String fieldName) async {
-    // Remove from Firestore
     await _configDoc(tournamentId).set(
       {
-        '${fieldName}Url': '',
+        fieldName: '',
         'updatedAt': Timestamp.fromDate(DateTime.now()),
       },
       SetOptions(merge: true),
     );
-
-    // Try to delete from Storage (ignore if not exists)
-    try {
-      // Try both extensions
-      for (final ext in ['jpg', 'jpeg', 'png', 'webp']) {
-        try {
-          await _storage
-              .ref()
-              .child('sponsors/$tournamentId/$fieldName.$ext')
-              .delete();
-        } catch (_) {}
-      }
-    } catch (_) {}
   }
 
   /// ─────────────────── Text Methods ───────────────────

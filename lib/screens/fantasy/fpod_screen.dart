@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../services/image_helper.dart';
 import '../../services/fantasy/fpod_service.dart';
 import '../../services/fantasy/sponsor_service.dart';
 
@@ -222,14 +223,9 @@ class _FpodScreenState extends State<FpodScreen> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        config.cornerLogoUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => const Icon(
-                          Icons.image_not_supported,
-                          color: Colors.grey,
-                          size: 18,
-                        ),
+                      child: _base64Image(
+                        config.cornerLogoBase64,
+                        icon: Icons.image_not_supported,
                       ),
                     ),
                   ),
@@ -265,9 +261,37 @@ class _FpodScreenState extends State<FpodScreen> {
     );
   }
 
+  // ─── Helper: base64 image widget ───
+  Widget _base64Image(
+    String base64String, {
+    BoxFit fit = BoxFit.cover,
+    IconData icon = Icons.business,
+  }) {
+    if (base64String.isEmpty) {
+      return Center(
+        child: Icon(
+          icon,
+          color: const Color(0xFF0A1931).withValues(alpha: 0.3),
+          size: 24,
+        ),
+      );
+    }
+    return Image.memory(
+      ImageHelper.base64ToBytes(base64String),
+      fit: fit,
+      errorBuilder: (_, _, _) => Center(
+        child: Icon(
+          icon,
+          color: const Color(0xFF0A1931).withValues(alpha: 0.3),
+          size: 24,
+        ),
+      ),
+    );
+  }
+
   // ─── Sponsor section (top) ───
   Widget _sponsorSection(SponsorConfig config) {
-    final hasLogo = config.fpodSponsorLogoUrl.isNotEmpty;
+    final hasLogo = config.fpodSponsorLogoBase64.isNotEmpty;
     final hasName = config.fpodSponsorName.isNotEmpty;
 
     if (!hasLogo && !hasName) {
@@ -338,13 +362,9 @@ class _FpodScreenState extends State<FpodScreen> {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(10),
                 child: hasLogo
-                    ? Image.network(
-                        config.fpodSponsorLogoUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => const Icon(
-                          Icons.business,
-                          color: Color(0xFF0A1931),
-                        ),
+                    ? _base64Image(
+                        config.fpodSponsorLogoBase64,
+                        icon: Icons.business,
                       )
                     : const Icon(
                         Icons.business,
