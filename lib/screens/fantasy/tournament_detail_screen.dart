@@ -10,6 +10,7 @@ import 'match_stats_screen.dart';
 import 'leaderboard_screen.dart';
 import 'fpod_screen.dart';
 import 'elimination_screen.dart';
+import 'winner_declare_screen.dart';
 
 /// Tournament Detail Screen — Teams, Matches, Info, Rules tabs
 class TournamentDetailScreen extends StatefulWidget {
@@ -94,6 +95,22 @@ class _TournamentDetailScreenState extends State<TournamentDetailScreen> {
                       ),
                     ),
                   ),
+                ),
+                // ── Winner Declare Action ──
+                IconButton(
+                  icon: const Icon(Icons.emoji_events),
+                  tooltip: 'Declare Winners',
+                  onPressed: t.status == 'draft'
+                      ? null
+                      : () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => WinnerDeclareScreen(
+                                tournamentId: widget.tournamentId,
+                                tournamentName: t.name,
+                              ),
+                            ),
+                          ),
                 ),
                 IconButton(
                   icon: _deleting
@@ -449,6 +466,10 @@ class _OverviewTab extends StatelessWidget {
         _row('Deadline', _fmt(tournament.deadline)),
         if (tournament.winnerUserName != null)
           _row('Winner', tournament.winnerUserName!),
+        if (tournament.runnerUpUserName != null)
+          _row('Runner-Up', tournament.runnerUpUserName!),
+        if (tournament.thirdPlaceUserName != null)
+          _row('Third Place', tournament.thirdPlaceUserName!),
         _row('Created By', tournament.createdBy),
       ],
     );
