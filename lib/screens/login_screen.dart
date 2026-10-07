@@ -16,7 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   // Admin credentials
   static const String _adminEmail = 'cricket.mania78362@gmail.com';
   static const String _adminPin = '1996';
-  static const String _adminPassword = 'CricMania@2026';
+  static const String _adminPassword = '19961996';
 
   Future<void> _login() async {
     final enteredPin = _codeCtrl.text.trim();
