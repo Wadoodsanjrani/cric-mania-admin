@@ -6,7 +6,7 @@ import '../../services/fantasy/fpod_service.dart';
 import '../../services/fantasy/sponsor_service.dart';
 import 'fpod_history_screen.dart';
 
-/// FPOD Screen — Fantasy Participant of the Day (sponsored)
+/// FPOD Screen — Pro League Participant of the Match (sponsored)
 class FpodScreen extends StatefulWidget {
   final String tournamentId;
   const FpodScreen({super.key, required this.tournamentId});
@@ -21,7 +21,6 @@ class _FpodScreenState extends State<FpodScreen> {
   final _picker = ImagePicker();
   bool _uploading = false;
 
-  // ─── Upload FPOD sponsor logo ───
   Future<void> _pickSponsorLogo() async {
     final XFile? picked = await _picker.pickImage(
       source: ImageSource.gallery,
@@ -42,7 +41,6 @@ class _FpodScreenState extends State<FpodScreen> {
     }
   }
 
-  // ─── Remove sponsor logo ───
   Future<void> _confirmRemoveLogo() async {
     final ok = await showDialog<bool>(
       context: context,
@@ -75,11 +73,7 @@ class _FpodScreenState extends State<FpodScreen> {
     }
   }
 
-  // ─── Edit sponsor text ───
-  Future<void> _editTexts(
-    String currentName,
-    String currentTitle,
-  ) async {
+  Future<void> _editTexts(String currentName, String currentTitle) async {
     final nameCtrl = TextEditingController(text: currentName);
     final titleCtrl = TextEditingController(text: currentTitle);
 
@@ -103,7 +97,7 @@ class _FpodScreenState extends State<FpodScreen> {
               controller: titleCtrl,
               decoration: const InputDecoration(
                 labelText: 'Card Title',
-                hintText: 'e.g. Player of the Day',
+                hintText: 'e.g. Player of the Match',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -139,7 +133,6 @@ class _FpodScreenState extends State<FpodScreen> {
     }
   }
 
-  // ─── Show image options bottom sheet ───
   void _showLogoOptions(bool hasImage) {
     showModalBottomSheet(
       context: context,
@@ -188,7 +181,7 @@ class _FpodScreenState extends State<FpodScreen> {
       builder: (context, sponsorSnap) {
         final config = sponsorSnap.data ?? SponsorConfig();
         final title = config.fpodCardTitle.isEmpty
-            ? 'Player of the Day'
+            ? 'Player of the Match'
             : config.fpodCardTitle;
 
         return Scaffold(
@@ -201,10 +194,9 @@ class _FpodScreenState extends State<FpodScreen> {
               style: const TextStyle(color: Colors.white),
             ),
             actions: [
-              // ─── HISTORY BUTTON ───
               IconButton(
                 icon: const Icon(Icons.history),
-                tooltip: 'FPOD History',
+                tooltip: 'PLP History',
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -215,7 +207,6 @@ class _FpodScreenState extends State<FpodScreen> {
                   ),
                 ),
               ),
-              // Edit texts button
               IconButton(
                 icon: const Icon(Icons.edit),
                 tooltip: 'Edit Sponsor Info',
@@ -224,11 +215,10 @@ class _FpodScreenState extends State<FpodScreen> {
                   config.fpodCardTitle,
                 ),
               ),
-              // Corner logo
               if (config.hasCornerLogo)
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                   child: Container(
                     width: 36,
                     height: 36,
@@ -252,16 +242,11 @@ class _FpodScreenState extends State<FpodScreen> {
               ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  // Sponsor section
                   _sponsorSection(config),
-
                   const SizedBox(height: 24),
-
-                  // FPOD card
                   _fpodCard(config),
                 ],
               ),
-
               if (_uploading)
                 Container(
                   color: Colors.black.withValues(alpha: 0.5),
@@ -276,7 +261,6 @@ class _FpodScreenState extends State<FpodScreen> {
     );
   }
 
-  // ─── Helper: base64 image widget ───
   Widget _base64Image(
     String base64String, {
     BoxFit fit = BoxFit.cover,
@@ -304,13 +288,11 @@ class _FpodScreenState extends State<FpodScreen> {
     );
   }
 
-  // ─── Sponsor section (top) ───
   Widget _sponsorSection(SponsorConfig config) {
     final hasLogo = config.fpodSponsorLogoBase64.isNotEmpty;
     final hasName = config.fpodSponsorName.isNotEmpty;
 
     if (!hasLogo && !hasName) {
-      // Placeholder — prompt admin to set up
       return GestureDetector(
         onLongPress: () => _showLogoOptions(false),
         child: Container(
@@ -366,7 +348,6 @@ class _FpodScreenState extends State<FpodScreen> {
         ),
         child: Row(
           children: [
-            // Logo
             Container(
               width: 56,
               height: 56,
@@ -388,8 +369,6 @@ class _FpodScreenState extends State<FpodScreen> {
               ),
             ),
             const SizedBox(width: 14),
-
-            // Text
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -420,7 +399,6 @@ class _FpodScreenState extends State<FpodScreen> {
     );
   }
 
-  // ─── FPOD Card ───
   Widget _fpodCard(SponsorConfig config) {
     return StreamBuilder<Map<String, dynamic>?>(
       stream: _fpodService.streamLatestFpod(widget.tournamentId),
@@ -447,7 +425,7 @@ class _FpodScreenState extends State<FpodScreen> {
                     size: 64, color: Colors.grey),
                 SizedBox(height: 12),
                 Text(
-                  'No FPOD yet',
+                  'No PLP yet',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -456,7 +434,7 @@ class _FpodScreenState extends State<FpodScreen> {
                 ),
                 SizedBox(height: 6),
                 Text(
-                  'The daily top performer will appear\nhere after the first match.',
+                  'The top performer will appear here\nafter the first match.',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 12, color: Colors.grey),
                 ),
@@ -469,7 +447,9 @@ class _FpodScreenState extends State<FpodScreen> {
         final userCity = data['userCity'] ?? '';
         final userPhotoUrl = data['userPhotoUrl'] ?? '';
         final points = data['points'] ?? 0;
-        final date = data['date'] ?? '';
+        final matchNumber = (data['matchNumber'] ?? '').toString();
+        final matchLabel =
+            matchNumber.isEmpty ? 'Match' : 'Match $matchNumber';
 
         return Container(
           padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
@@ -494,7 +474,6 @@ class _FpodScreenState extends State<FpodScreen> {
           ),
           child: Column(
             children: [
-              // Profile picture
               Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
@@ -535,8 +514,6 @@ class _FpodScreenState extends State<FpodScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-
-              // Name
               Text(
                 userName,
                 style: const TextStyle(
@@ -546,8 +523,6 @@ class _FpodScreenState extends State<FpodScreen> {
                 ),
                 textAlign: TextAlign.center,
               ),
-
-              // City
               if (userCity.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Row(
@@ -569,10 +544,7 @@ class _FpodScreenState extends State<FpodScreen> {
                   ],
                 ),
               ],
-
               const SizedBox(height: 24),
-
-              // Points badge
               Container(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 20, vertical: 10),
@@ -619,12 +591,10 @@ class _FpodScreenState extends State<FpodScreen> {
                   ],
                 ),
               ),
-
-              // Date
-              if (date.isNotEmpty) ...[
+              if (matchLabel.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 Text(
-                  date,
+                  matchLabel,
                   style: const TextStyle(
                     fontSize: 12,
                     color: Colors.grey,

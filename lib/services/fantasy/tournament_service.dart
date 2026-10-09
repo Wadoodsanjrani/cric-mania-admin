@@ -28,6 +28,8 @@ class TournamentService {
   }
 
   /// Create new tournament — returns new doc id
+  /// Directly creates with status: 'active' (no draft)
+  /// submissionLocked: false (users can submit squads)
   Future<String> createTournament({
     required String name,
     required String format,
@@ -42,7 +44,8 @@ class TournamentService {
       'startDate': Timestamp.fromDate(startDate),
       'endDate': Timestamp.fromDate(endDate),
       'deadline': Timestamp.fromDate(deadline),
-      'status': 'draft',
+      'status': 'active',                    // ✅ direct active
+      'submissionLocked': false,             // ✅ users can submit
 
       // Winner (1st place)
       'winnerUserId': null,
@@ -71,6 +74,16 @@ class TournamentService {
     await _tournaments.doc(tournamentId).update({'status': status});
   }
 
+  /// Update submission lock
+  Future<void> updateSubmissionLock(
+    String tournamentId,
+    bool locked,
+  ) async {
+    await _tournaments.doc(tournamentId).update({
+      'submissionLocked': locked,
+    });
+  }
+
   /// Update tournament (generic fields)
   Future<void> updateTournament(
     String tournamentId,
@@ -86,24 +99,14 @@ class TournamentService {
   /// Declare top N winners from the leaderboard.
   ///
   /// [winnersCount] must be 1, 2, or 3.
-  ///
-  /// Flow:
-  ///   1. Load active leaderboard entries (sorted by rank ASC)
-  ///   2. Pick top N users
-  ///   3. Update tournament with winner / runnerUp / thirdPlace
-  ///   4. Set status = 'completed'
-  ///
-  /// Returns updated TournamentModel.
   Future<TournamentModel> declareWinners({
     required String tournamentId,
     required int winnersCount,
   }) async {
-    // Validate input
     if (winnersCount < 1 || winnersCount > 3) {
       throw ArgumentError('winnersCount must be 1, 2, or 3');
     }
 
-    // 1. Load active leaderboard entries sorted by rank
     final leaderboardSnap = await _tournaments
         .doc(tournamentId)
         .collection('leaderboard')
@@ -123,7 +126,6 @@ class TournamentService {
       );
     }
 
-    // 2. Extract top N users
     final winners = leaderboardSnap.docs.take(winnersCount).toList();
 
     String? winnerUserId;
@@ -133,26 +135,22 @@ class TournamentService {
     String? thirdPlaceUserId;
     String? thirdPlaceUserName;
 
-    // 1st place (always)
     final firstData = winners[0].data();
     winnerUserId = firstData['userId'] as String?;
     winnerUserName = firstData['userName'] as String?;
 
-    // 2nd place (if count >= 2)
     if (winnersCount >= 2) {
       final secondData = winners[1].data();
       runnerUpUserId = secondData['userId'] as String?;
       runnerUpUserName = secondData['userName'] as String?;
     }
 
-    // 3rd place (if count == 3)
     if (winnersCount == 3) {
       final thirdData = winners[2].data();
       thirdPlaceUserId = thirdData['userId'] as String?;
       thirdPlaceUserName = thirdData['userName'] as String?;
     }
 
-    // 3. Update tournament document
     await _tournaments.doc(tournamentId).update({
       'status': 'completed',
       'winnerUserId': winnerUserId,
@@ -165,7 +163,6 @@ class TournamentService {
       'winnerDeclaredAt': Timestamp.fromDate(DateTime.now()),
     });
 
-    // 4. Return updated tournament
     final updatedDoc = await _tournaments.doc(tournamentId).get();
     return TournamentModel.fromMap(
       updatedDoc.id,
@@ -174,7 +171,6 @@ class TournamentService {
   }
 
   /// Reset winners (admin mistake recovery)
-  /// Sets all winner fields back to null and status back to 'active'.
   Future<void> resetWinners(String tournamentId) async {
     await _tournaments.doc(tournamentId).update({
       'status': 'active',
@@ -189,9 +185,8 @@ class TournamentService {
     });
   }
 
-  /// Delete tournament (cascade subcollections manually delete karne padenge — Firestore auto-delete nahi karta)
+  /// Delete tournament (cascade subcollections)
   Future<void> deleteTournament(String tournamentId) async {
-    // Subcollections: teams, matches, squads, leaderboard
     final subs = ['teams', 'matches', 'squads', 'leaderboard'];
     for (final sub in subs) {
       final docs =

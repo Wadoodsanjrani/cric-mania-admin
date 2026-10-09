@@ -1,13 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/image_helper.dart';
 import '../../services/fantasy/leaderboard_service.dart';
 import '../../services/fantasy/sponsor_service.dart';
 
-/// Leaderboard Screen
+/// Leaderboard Screen (Admin)
 /// Shows sponsor banner, slots, corner logo, and ranked users
-/// Long-press on banner/slots/logo to replace image (admin only)
 class LeaderboardScreen extends StatefulWidget {
   final String tournamentId;
   const LeaderboardScreen({super.key, required this.tournamentId});
@@ -22,7 +22,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   final _picker = ImagePicker();
   bool _uploading = false;
 
-  // ─── Pick & upload image ───
   Future<void> _pickAndUpload(String field) async {
     final XFile? picked = await _picker.pickImage(
       source: ImageSource.gallery,
@@ -59,7 +58,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     }
   }
 
-  // ─── Remove image (with confirm) ───
   Future<void> _confirmRemove(String field, String label) async {
     final ok = await showDialog<bool>(
       context: context,
@@ -108,7 +106,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     }
   }
 
-  // ─── Bottom sheet with options ───
   void _showImageOptions(String field, String label, bool hasImage) {
     showModalBottomSheet(
       context: context,
@@ -167,7 +164,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               style: TextStyle(color: Colors.white),
             ),
             actions: [
-              // Corner logo
               if (config.hasCornerLogo)
                 Padding(
                   padding: const EdgeInsets.symmetric(
@@ -199,17 +195,16 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               ListView(
                 padding: const EdgeInsets.all(12),
                 children: [
-                  // Banner
                   _bannerWidget(config),
-
                   const SizedBox(height: 12),
-
-                  // 3 slots
                   _slotsRow(config),
+                  const SizedBox(height: 16),
 
-                  const SizedBox(height: 24),
+                  // ─── MATCH NUMBER CHIP ───
+                  _latestMatchChip(),
 
-                  // Leaderboard header
+                  const SizedBox(height: 16),
+
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 4),
                     child: Row(
@@ -218,9 +213,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                             color: Color(0xFFD4AF37), size: 24),
                         SizedBox(width: 8),
                         Text(
-                          'LEADERBOARD',
+                          'OVERALL LEADERBOARD',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 14,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF0A1931),
                             letterSpacing: 1.2,
@@ -231,12 +226,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Leaderboard list
                   _leaderboardList(),
                 ],
               ),
-
-              // Uploading overlay
               if (_uploading)
                 Container(
                   color: Colors.black.withValues(alpha: 0.5),
@@ -251,7 +243,67 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     );
   }
 
-  // ─── Helper: base64 image widget ───
+  // ─── Latest Match Number Chip ───
+  Widget _latestMatchChip() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('tournaments')
+          .doc(widget.tournamentId)
+          .collection('matches')
+          .orderBy('createdAt', descending: true)
+          .limit(1)
+          .snapshots(),
+      builder: (context, snapshot) {
+        String matchLabel = 'Overall Leaderboard — All Matches';
+
+        if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+          final matchData =
+              snapshot.data!.docs.first.data() as Map<String, dynamic>;
+          final matchNumber = (matchData['matchNumber'] ?? '').toString();
+          if (matchNumber.isNotEmpty) {
+            matchLabel = 'Latest Match: Match $matchNumber • Overall';
+          }
+        }
+
+        return Container(
+          padding: const EdgeInsets.symmetric(
+              horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF0A1931), Color(0xFF1B3A5C)],
+            ),
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF0A1931).withValues(alpha: 0.2),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.sports_cricket,
+                  color: Colors.amber, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  matchLabel,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _base64Image(
     String base64String, {
     BoxFit fit = BoxFit.cover,
@@ -279,7 +331,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     );
   }
 
-  // ─── Banner widget ───
   Widget _bannerWidget(SponsorConfig config) {
     return GestureDetector(
       onLongPress: () => _showImageOptions(
@@ -332,7 +383,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     );
   }
 
-  // ─── Slots row ───
   Widget _slotsRow(SponsorConfig config) {
     return Row(
       children: [
@@ -385,10 +435,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     );
   }
 
-  // ─── Leaderboard list ───
   Widget _leaderboardList() {
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _leaderboardService.streamActiveLeaderboard(widget.tournamentId),
+      stream:
+          _leaderboardService.streamActiveLeaderboard(widget.tournamentId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Padding(
@@ -443,14 +493,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     );
   }
 
-  // ─── Single leaderboard row ───
   Widget _leaderboardRow({
     required int rank,
     required String userName,
     required int points,
     required String city,
   }) {
-    // Top 3 get special colors
     Color? cardColor;
     Color? borderColor;
     String? medalEmoji;
@@ -488,7 +536,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       ),
       child: Row(
         children: [
-          // Rank badge
           Container(
             width: 40,
             height: 40,
@@ -515,8 +562,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             ),
           ),
           const SizedBox(width: 12),
-
-          // User info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -545,8 +590,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               ],
             ),
           ),
-
-          // Points
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [

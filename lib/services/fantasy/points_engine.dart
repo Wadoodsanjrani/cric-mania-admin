@@ -4,23 +4,15 @@ import 'points_calculator.dart';
 import 'leaderboard_service.dart';
 import 'fpod_service.dart';
 
-/// Points Engine
-/// Calculate match points for all users, update leaderboard, FPOD
-/// Triggered automatically after match stats are saved
 class PointsEngine {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final LeaderboardService _leaderboardService = LeaderboardService();
   final FpodService _fpodService = FpodService();
 
-  /// Calculate points for a match
-  /// Reads: match stats, all squads, points rules
-  /// Writes: leaderboard entries, FPOD for match date
-  /// Returns: number of users updated
   Future<int> calculateMatchPoints({
     required String tournamentId,
     required String matchId,
   }) async {
-    // 1. Get match details (format + date)
     final matchDoc = await _firestore
         .collection('tournaments')
         .doc(tournamentId)
@@ -28,37 +20,26 @@ class PointsEngine {
         .doc(matchId)
         .get();
 
-    if (!matchDoc.exists) {
-      throw Exception('Match not found');
-    }
+    if (!matchDoc.exists) throw Exception('Match not found');
 
     final matchData = matchDoc.data()!;
-    final matchDate =
-        (matchData['matchDate'] as Timestamp?)?.toDate() ?? DateTime.now();
+    final team1Id = matchData['team1Id'] as String?;
+    final team2Id = matchData['team2Id'] as String?;
 
-    // 2. Get tournament format (T20 / ODI)
     final tournamentDoc = await _firestore
         .collection('tournaments')
         .doc(tournamentId)
         .get();
+    if (!tournamentDoc.exists) throw Exception('Tournament not found');
+    final format = (tournamentDoc.data()!['format'] ?? 'T20') as String;
 
-    if (!tournamentDoc.exists) {
-      throw Exception('Tournament not found');
-    }
-
-    final tournamentData = tournamentDoc.data()!;
-    final format = (tournamentData['format'] ?? 'T20') as String;
-
-    // 3. Load points rules
     final rulesDoc =
         await _firestore.collection('settings').doc('rules').get();
     final rules = rulesDoc.exists
         ? PointsRules.fromMap(rulesDoc.data()!)
         : PointsRules.defaults();
-
     final calculator = PointsCalculator(rules);
 
-    // 4. Load match stats
     final statsSnap = await _firestore
         .collection('tournaments')
         .doc(tournamentId)
@@ -72,90 +53,117 @@ class PointsEngine {
       statsMap[doc.id] = doc.data();
     }
 
-    if (statsMap.isEmpty) {
-      return 0;
+    if (statsMap.isEmpty) return 0;
+
+    final Map<String, String> nameToId = {};
+
+    if (team1Id != null) {
+      final p1 = await _firestore
+          .collection('tournaments')
+          .doc(tournamentId)
+          .collection('teams')
+          .doc(team1Id)
+          .collection('players')
+          .get();
+      for (final p in p1.docs) {
+        final name = (p.data()['name'] ?? '').toString();
+        if (name.isNotEmpty) nameToId[name] = p.id;
+      }
     }
 
-    // 5. Load all squads
+    if (team2Id != null) {
+      final p2 = await _firestore
+          .collection('tournaments')
+          .doc(tournamentId)
+          .collection('teams')
+          .doc(team2Id)
+          .collection('players')
+          .get();
+      for (final p in p2.docs) {
+        final name = (p.data()['name'] ?? '').toString();
+        if (name.isNotEmpty) nameToId[name] = p.id;
+      }
+    }
+
     final squadsSnap = await _firestore
         .collection('tournaments')
         .doc(tournamentId)
         .collection('squads')
         .get();
 
-    if (squadsSnap.docs.isEmpty) {
-      return 0;
-    }
+    if (squadsSnap.docs.isEmpty) return 0;
 
-    // 6. Calculate points for each user
     int updated = 0;
 
     for (final squadDoc in squadsSnap.docs) {
       final userId = squadDoc.id;
       final squadData = squadDoc.data();
-      final userName = (squadData['userName'] ?? 'Unknown') as String;
-      final teams = squadData['teams'] as Map<String, dynamic>? ?? {};
+      final userName = (squadData['userName'] ?? 'Unknown').toString();
+
+      final teamsSnap = await _firestore
+          .collection('tournaments')
+          .doc(tournamentId)
+          .collection('squads')
+          .doc(userId)
+          .collection('teams')
+          .get();
+
+      if (teamsSnap.docs.isEmpty) continue;
 
       int matchPoints = 0;
 
-      for (final teamEntry in teams.entries) {
-        final teamSlots = teamEntry.value as Map<String, dynamic>? ?? {};
+      for (final teamDoc in teamsSnap.docs) {
+        final teamSlots = teamDoc.data();
 
-        // Extract player IDs from slots
-        final batterMain = teamSlots['batterMain'] as String?;
-        final batterBackup = teamSlots['batterBackup'] as String?;
-        final bowlerMain = teamSlots['bowlerMain'] as String?;
-        final bowlerBackup = teamSlots['bowlerBackup'] as String?;
-        final wildcard = teamSlots['wildcard'] as String?;
+        String? resolve(String? value) {
+          if (value == null || value.isEmpty) return null;
+          if (statsMap.containsKey(value)) return value;
+          final id = nameToId[value];
+          if (id != null && statsMap.containsKey(id)) return id;
+          return null;
+        }
 
-        // Check if main players played
-        final batterMainPlayed =
-            batterMain != null && statsMap.containsKey(batterMain);
-        final bowlerMainPlayed =
-            bowlerMain != null && statsMap.containsKey(bowlerMain);
+        final batterMainId = resolve(teamSlots['batterMain'] as String?);
+        final batterBackupId = resolve(teamSlots['batterBackup'] as String?);
+        final bowlerMainId = resolve(teamSlots['bowlerMain'] as String?);
+        final bowlerBackupId = resolve(teamSlots['bowlerBackup'] as String?);
+        final wildcardId = resolve(teamSlots['wildcard'] as String?);
 
-        // ─── BATTER MAIN ───
+        final batterMainPlayed = batterMainId != null;
+        final bowlerMainPlayed = bowlerMainId != null;
+
         if (batterMainPlayed) {
           matchPoints +=
-              _calcBatting(statsMap[batterMain]!, calculator, format);
-          matchPoints += _calcBonus(statsMap[batterMain]!, rules);
+              _calcBatting(statsMap[batterMainId]!, calculator, format);
+          matchPoints += _calcBonus(statsMap[batterMainId]!, rules);
         }
 
-        // ─── BATTER BACKUP ───
-        if (!batterMainPlayed &&
-            batterBackup != null &&
-            statsMap.containsKey(batterBackup)) {
+        if (!batterMainPlayed && batterBackupId != null) {
           matchPoints +=
-              _calcBatting(statsMap[batterBackup]!, calculator, format);
-          matchPoints += _calcBonus(statsMap[batterBackup]!, rules);
+              _calcBatting(statsMap[batterBackupId]!, calculator, format);
+          matchPoints += _calcBonus(statsMap[batterBackupId]!, rules);
         }
 
-        // ─── BOWLER MAIN ───
         if (bowlerMainPlayed) {
           matchPoints +=
-              _calcBowling(statsMap[bowlerMain]!, calculator, format);
-          matchPoints += _calcBonus(statsMap[bowlerMain]!, rules);
+              _calcBowling(statsMap[bowlerMainId]!, calculator, format);
+          matchPoints += _calcBonus(statsMap[bowlerMainId]!, rules);
         }
 
-        // ─── BOWLER BACKUP ───
-        if (!bowlerMainPlayed &&
-            bowlerBackup != null &&
-            statsMap.containsKey(bowlerBackup)) {
+        if (!bowlerMainPlayed && bowlerBackupId != null) {
           matchPoints +=
-              _calcBowling(statsMap[bowlerBackup]!, calculator, format);
-          matchPoints += _calcBonus(statsMap[bowlerBackup]!, rules);
+              _calcBowling(statsMap[bowlerBackupId]!, calculator, format);
+          matchPoints += _calcBonus(statsMap[bowlerBackupId]!, rules);
         }
 
-        // ─── WILDCARD ───
-        if (wildcard != null && statsMap.containsKey(wildcard)) {
-          final wStats = statsMap[wildcard]!;
+        if (wildcardId != null) {
+          final wStats = statsMap[wildcardId]!;
           matchPoints += _calcBatting(wStats, calculator, format);
           matchPoints += _calcBowling(wStats, calculator, format);
           matchPoints += _calcBonus(wStats, rules);
         }
       }
 
-      // 7. Update leaderboard
       await _leaderboardService.updateUserPoints(
         tournamentId: tournamentId,
         userId: userId,
@@ -167,19 +175,17 @@ class PointsEngine {
       updated++;
     }
 
-    // 8. Recalculate ranks
     await _leaderboardService.recalculateRanks(tournamentId);
 
-    // 9. Recalculate FPOD for this match date
-    await _fpodService.recalculateForDate(
+    // ✅ FIX: Ab match-based FPOD calculate hoga (date ki jagah matchId)
+    await _fpodService.recalculateForMatch(
       tournamentId: tournamentId,
-      date: matchDate,
+      matchId: matchId,
     );
 
     return updated;
   }
 
-  /// Calculate batting points (runs)
   int _calcBatting(
     Map<String, dynamic> stats,
     PointsCalculator calculator,
@@ -189,7 +195,6 @@ class PointsEngine {
     return calculator.calculateBattingPoints(runs, format);
   }
 
-  /// Calculate bowling points (wickets)
   int _calcBowling(
     Map<String, dynamic> stats,
     PointsCalculator calculator,
@@ -199,8 +204,6 @@ class PointsEngine {
     return calculator.calculateBowlingPoints(wickets, format);
   }
 
-  /// Calculate MOTM / MOS bonus
-  /// Note: MOM = Man of the Match, MOS = Man of the Series
   int _calcBonus(Map<String, dynamic> stats, PointsRules rules) {
     int bonus = 0;
     if (stats['isMom'] == true) bonus += rules.momPoints;

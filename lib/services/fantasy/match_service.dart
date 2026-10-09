@@ -32,6 +32,12 @@ class MatchService {
     return MatchModel.fromMap(doc.id, doc.data()!);
   }
 
+  /// Count existing matches — auto-numbering ke liye
+  Future<int> countMatches(String tournamentId) async {
+    final snap = await _matches(tournamentId).get();
+    return snap.docs.length;
+  }
+
   /// Add match
   Future<String> addMatch({
     required String tournamentId,
@@ -40,6 +46,7 @@ class MatchService {
     required String team1Name,
     required String team2Name,
     required DateTime matchDate,
+    String matchNumber = '',
   }) async {
     final docRef = await _matches(tournamentId).add({
       'team1Id': team1Id,
@@ -47,6 +54,7 @@ class MatchService {
       'team1Name': team1Name,
       'team2Name': team2Name,
       'matchDate': Timestamp.fromDate(matchDate),
+      'matchNumber': matchNumber,
       'status': 'scheduled',
       'motmPlayerId': null,
       'motsPlayerId': null,
@@ -54,6 +62,17 @@ class MatchService {
       'createdAt': Timestamp.fromDate(DateTime.now()),
     });
     return docRef.id;
+  }
+
+  /// Update match number
+  Future<void> updateMatchNumber({
+    required String tournamentId,
+    required String matchId,
+    required String matchNumber,
+  }) async {
+    await _matches(tournamentId).doc(matchId).update({
+      'matchNumber': matchNumber,
+    });
   }
 
   /// Mark match completed + set MOTM

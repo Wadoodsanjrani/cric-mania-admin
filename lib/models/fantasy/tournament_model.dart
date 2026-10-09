@@ -11,6 +11,9 @@ class TournamentModel {
   final DateTime deadline; // squad submission deadline
   final String status; // 'draft' | 'active' | 'completed'
 
+  /// Submission lock — when true, users cannot submit/edit squads
+  final bool submissionLocked;
+
   // ── Winner (1st Place) ──
   final String? winnerUserId;
   final String? winnerUserName;
@@ -39,6 +42,7 @@ class TournamentModel {
     required this.endDate,
     required this.deadline,
     required this.status,
+    this.submissionLocked = false,
     this.winnerUserId,
     this.winnerUserName,
     this.runnerUpUserId,
@@ -61,6 +65,7 @@ class TournamentModel {
       endDate: (map['endDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
       deadline: (map['deadline'] as Timestamp?)?.toDate() ?? DateTime.now(),
       status: map['status'] ?? 'draft',
+      submissionLocked: map['submissionLocked'] ?? false,
       winnerUserId: map['winnerUserId'],
       winnerUserName: map['winnerUserName'],
       runnerUpUserId: map['runnerUpUserId'],
@@ -84,6 +89,7 @@ class TournamentModel {
       'endDate': Timestamp.fromDate(endDate),
       'deadline': Timestamp.fromDate(deadline),
       'status': status,
+      'submissionLocked': submissionLocked,
       'winnerUserId': winnerUserId,
       'winnerUserName': winnerUserName,
       'runnerUpUserId': runnerUpUserId,
@@ -107,6 +113,7 @@ class TournamentModel {
     DateTime? endDate,
     DateTime? deadline,
     String? status,
+    bool? submissionLocked,
     String? winnerUserId,
     String? winnerUserName,
     String? runnerUpUserId,
@@ -124,6 +131,7 @@ class TournamentModel {
       endDate: endDate ?? this.endDate,
       deadline: deadline ?? this.deadline,
       status: status ?? this.status,
+      submissionLocked: submissionLocked ?? this.submissionLocked,
       winnerUserId: winnerUserId ?? this.winnerUserId,
       winnerUserName: winnerUserName ?? this.winnerUserName,
       runnerUpUserId: runnerUpUserId ?? this.runnerUpUserId,

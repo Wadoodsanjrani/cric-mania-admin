@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// FPOD Service — Fantasy Participant of the Day
-/// Firestore path: tournaments/{tid}/fpod/{dateKey}
+/// FPOD Service — Pro League Participant of the Match (PLPM)
+/// Firestore path: tournaments/{tid}/fpod/{matchId}
 class FpodService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -11,16 +11,27 @@ class FpodService {
           .doc(tournamentId)
           .collection('fpod');
 
-  String dateKey(DateTime d) =>
-      '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-
   // ─────────────────────────────────────────────────────────
-  // RECALCULATE FPOD FOR A DATE
+  // RECALCULATE FPOD FOR A MATCH
+  // Har match ke baad top performer (sirf is match ke points)
   // ─────────────────────────────────────────────────────────
-  Future<Map<String, dynamic>?> recalculateForDate({
+  Future<Map<String, dynamic>?> recalculateForMatch({
     required String tournamentId,
-    required DateTime date,
+    required String matchId,
   }) async {
+    // 1. Match doc se matchNumber nikaalo
+    final matchDoc = await _firestore
+        .collection('tournaments')
+        .doc(tournamentId)
+        .collection('matches')
+        .doc(matchId)
+        .get();
+
+    if (!matchDoc.exists) return null;
+    final matchData = matchDoc.data()!;
+    final matchNumber = (matchData['matchNumber'] ?? '').toString();
+
+    // 2. Leaderboard se sab active users lo
     final lbSnap = await _firestore
         .collection('tournaments')
         .doc(tournamentId)
@@ -30,60 +41,75 @@ class FpodService {
 
     if (lbSnap.docs.isEmpty) return null;
 
-    final entries = lbSnap.docs
-        .map((doc) => <String, dynamic>{'id': doc.id, ...doc.data()})
-        .toList();
+    // 3. Har user ke is match ke points nikaalo
+    final entries = <Map<String, dynamic>>[];
+    for (final doc in lbSnap.docs) {
+      final data = doc.data();
+      final matchPoints = data['matchPoints'];
+      int thisMatchPoints = 0;
+      if (matchPoints is Map) {
+        thisMatchPoints = (matchPoints[matchId] ?? 0) as int;
+      }
+      entries.add({
+        'id': doc.id,
+        'userId': data['userId'] ?? doc.id,
+        'userName': data['userName'] ?? '',
+        'userPhotoUrl': data['userPhotoUrl'] ?? '',
+        'userCity': data['userCity'] ?? '',
+        'thisMatchPoints': thisMatchPoints,
+      });
+    }
 
-    // Sort: Points DESC → Rank ASC → Name ASC
-    entries.sort((a, b) {
-      final ap = (a['totalPoints'] ?? 0) as int;
-      final bp = (b['totalPoints'] ?? 0) as int;
+    // 4. Sirf woh users jinhone is match mein points kamaye
+    final participants =
+        entries.where((e) => (e['thisMatchPoints'] as int) > 0).toList();
+
+    if (participants.isEmpty) return null;
+
+    // 5. Sort: is match ke points DESC → name ASC
+    participants.sort((a, b) {
+      final ap = a['thisMatchPoints'] as int;
+      final bp = b['thisMatchPoints'] as int;
       if (ap != bp) return bp.compareTo(ap);
-
-      final ar = (a['rank'] ?? 999999) as int;
-      final br = (b['rank'] ?? 999999) as int;
-      if (ar != br) return ar.compareTo(br);
-
       final an = (a['userName'] ?? '') as String;
       final bn = (b['userName'] ?? '') as String;
       return an.toLowerCase().compareTo(bn.toLowerCase());
     });
 
-    final top = entries.first;
-    final key = dateKey(date);
-
+    // 6. Top performer save karo (doc ID = matchId)
+    final top = participants.first;
     final fpodData = {
-      'userId': top['userId'] ?? top['id'],
-      'userName': top['userName'] ?? '',
-      'userPhotoUrl': top['userPhotoUrl'] ?? '',
-      'userCity': top['userCity'] ?? '',
-      'points': top['totalPoints'] ?? 0,
-      'rank': top['rank'] ?? 1,
-      'date': key,
+      'userId': top['userId'],
+      'userName': top['userName'],
+      'userPhotoUrl': top['userPhotoUrl'],
+      'userCity': top['userCity'],
+      'points': top['thisMatchPoints'],
+      'matchId': matchId,
+      'matchNumber': matchNumber,
       'calculatedAt': Timestamp.fromDate(DateTime.now()),
     };
 
-    await _fpod(tournamentId).doc(key).set(fpodData);
+    await _fpod(tournamentId).doc(matchId).set(fpodData);
     return fpodData;
   }
 
   // ─────────────────────────────────────────────────────────
-  // GET FPOD FOR A SPECIFIC DATE
+  // GET FPOD FOR A MATCH
   // ─────────────────────────────────────────────────────────
-  Future<Map<String, dynamic>?> getFpod(
+  Future<Map<String, dynamic>?> getFpodForMatch(
     String tournamentId,
-    DateTime date,
+    String matchId,
   ) async {
-    final doc = await _fpod(tournamentId).doc(dateKey(date)).get();
+    final doc = await _fpod(tournamentId).doc(matchId).get();
     return doc.exists ? doc.data() : null;
   }
 
   // ─────────────────────────────────────────────────────────
-  // STREAM LATEST FPOD
+  // STREAM LATEST FPOD (sabse recent match ka)
   // ─────────────────────────────────────────────────────────
   Stream<Map<String, dynamic>?> streamLatestFpod(String tournamentId) {
     return _fpod(tournamentId)
-        .orderBy('date', descending: true)
+        .orderBy('calculatedAt', descending: true)
         .limit(1)
         .snapshots()
         .map((snap) {
@@ -93,20 +119,20 @@ class FpodService {
   }
 
   // ─────────────────────────────────────────────────────────
-  // STREAM ALL FPOD (HISTORY)
+  // STREAM ALL FPOD (HISTORY) — match-wise
   // ─────────────────────────────────────────────────────────
   Stream<List<Map<String, dynamic>>> streamAllFpod(String tournamentId) {
     return _fpod(tournamentId)
-        .orderBy('date', descending: true)
+        .orderBy('calculatedAt', descending: true)
         .snapshots()
         .map((snap) =>
             snap.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList());
   }
 
   // ─────────────────────────────────────────────────────────
-  // DELETE FPOD FOR A DATE
+  // DELETE FPOD FOR A MATCH
   // ─────────────────────────────────────────────────────────
-  Future<void> deleteForDate(String tournamentId, DateTime date) async {
-    await _fpod(tournamentId).doc(dateKey(date)).delete();
+  Future<void> deleteForMatch(String tournamentId, String matchId) async {
+    await _fpod(tournamentId).doc(matchId).delete();
   }
 }

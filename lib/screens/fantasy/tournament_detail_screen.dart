@@ -11,6 +11,7 @@ import 'leaderboard_screen.dart';
 import 'fpod_screen.dart';
 import 'elimination_screen.dart';
 import 'winner_declare_screen.dart';
+import 'prize_ad_screen.dart';
 
 /// Tournament Detail Screen — Teams, Matches, Info, Rules tabs
 class TournamentDetailScreen extends StatefulWidget {
@@ -27,6 +28,7 @@ class _TournamentDetailScreenState extends State<TournamentDetailScreen> {
   final _teamService = TeamService();
   final _matchService = MatchService();
   bool _deleting = false;
+  bool _togglingLock = false;
 
   @override
   Widget build(BuildContext context) {
@@ -60,6 +62,29 @@ class _TournamentDetailScreenState extends State<TournamentDetailScreen> {
                 style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
               actions: [
+                // ── Submission Lock Toggle ──
+                IconButton(
+                  icon: _togglingLock
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Icon(
+                          t.submissionLocked ? Icons.lock : Icons.lock_open,
+                          color: t.submissionLocked
+                              ? Colors.redAccent
+                              : const Color(0xFF00C9A7),
+                        ),
+                  tooltip: t.submissionLocked
+                      ? 'Submission Locked — Tap to Unlock'
+                      : 'Submission Open — Tap to Lock',
+                  onPressed:
+                      _togglingLock ? null : () => _toggleSubmissionLock(t),
+                ),
                 IconButton(
                   icon: const Icon(Icons.leaderboard),
                   tooltip: 'Leaderboard',
@@ -74,12 +99,26 @@ class _TournamentDetailScreenState extends State<TournamentDetailScreen> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.star),
-                  tooltip: 'Player of the Day',
+                  tooltip: 'Player of the Match',
                   onPressed: () => Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) => FpodScreen(
                         tournamentId: widget.tournamentId,
+                      ),
+                    ),
+                  ),
+                ),
+                // ── NAYA: Prize Ad Button ──
+                IconButton(
+                  icon: const Icon(Icons.card_giftcard),
+                  tooltip: 'Prize Ad',
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PrizeAdScreen(
+                        tournamentId: widget.tournamentId,
+                        tournamentName: t.name,
                       ),
                     ),
                   ),
@@ -96,7 +135,6 @@ class _TournamentDetailScreenState extends State<TournamentDetailScreen> {
                     ),
                   ),
                 ),
-                // ── Winner Declare Action ──
                 IconButton(
                   icon: const Icon(Icons.emoji_events),
                   tooltip: 'Declare Winners',
@@ -150,7 +188,11 @@ class _TournamentDetailScreenState extends State<TournamentDetailScreen> {
                   service: _matchService,
                   onMatchTap: (m) => _openMatchStats(m),
                 ),
-                _OverviewTab(tournament: t),
+                _OverviewTab(
+                  tournament: t,
+                  onToggleLock: () => _toggleSubmissionLock(t),
+                  toggling: _togglingLock,
+                ),
                 const _RulesTab(),
               ],
             ),
@@ -174,6 +216,68 @@ class _TournamentDetailScreenState extends State<TournamentDetailScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _toggleSubmissionLock(TournamentModel t) async {
+    final newValue = !t.submissionLocked;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(newValue ? 'Lock Submissions?' : 'Unlock Submissions?'),
+        content: Text(
+          newValue
+              ? 'Users will NOT be able to submit or edit squads after locking.'
+              : 'Users will be able to submit their squads again.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor:
+                  newValue ? Colors.red : const Color(0xFF00C9A7),
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(newValue ? 'Lock' : 'Unlock'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _togglingLock = true);
+
+    try {
+      await _tournamentService.updateSubmissionLock(
+        widget.tournamentId,
+        newValue,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              newValue
+                  ? 'Submissions LOCKED 🔒'
+                  : 'Submissions UNLOCKED 🔓',
+            ),
+            backgroundColor: newValue ? Colors.red : const Color(0xFF00C9A7),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _togglingLock = false);
+    }
   }
 
   Future<void> _confirmDelete(TournamentModel t) async {
@@ -451,13 +555,126 @@ class _MatchesTab extends StatelessWidget {
 // ─────────────────── Overview Tab ───────────────────
 class _OverviewTab extends StatelessWidget {
   final TournamentModel tournament;
-  const _OverviewTab({required this.tournament});
+  final VoidCallback onToggleLock;
+  final bool toggling;
+  const _OverviewTab({
+    required this.tournament,
+    required this.onToggleLock,
+    required this.toggling,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final locked = tournament.submissionLocked;
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        // ─── SUBMISSION LOCK CARD ───
+        Container(
+          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: locked
+                  ? [Colors.red.shade400, Colors.red.shade700]
+                  : [
+                      const Color(0xFF00C9A7),
+                      const Color(0xFF00A88A),
+                    ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: (locked ? Colors.red : const Color(0xFF00C9A7))
+                    .withValues(alpha: 0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    locked ? Icons.lock : Icons.lock_open,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Squad Submission',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          locked ? 'LOCKED' : 'OPEN',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                locked
+                    ? 'Users cannot submit or edit squads right now.'
+                    : 'Users can submit their squads right now.',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor:
+                        locked ? Colors.red : const Color(0xFF00A88A),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onPressed: toggling ? null : onToggleLock,
+                  icon: toggling
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(locked ? Icons.lock_open : Icons.lock),
+                  label: Text(
+                    locked ? 'UNLOCK SUBMISSIONS' : 'LOCK SUBMISSIONS',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // ─── TOURNAMENT INFO ───
         _row('Name', tournament.name),
         _row('Format', tournament.format),
         _row('Status', tournament.status),

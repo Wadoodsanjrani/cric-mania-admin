@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/fantasy/player_model.dart';
 import '../../services/fantasy/player_service.dart';
 import '../../services/fantasy/stats_service.dart';
@@ -8,6 +9,7 @@ import '../../services/fantasy/points_engine.dart';
 /// Match Stats Screen — innings-wise stats entry
 /// 4 sections: Team1 Batting, Team2 Bowling, Team2 Batting, Team1 Bowling
 /// + MOTM (MOTS optional)
+/// Loads existing stats if match was already completed
 class MatchStatsScreen extends StatefulWidget {
   final String tournamentId;
   final String matchId;
@@ -34,6 +36,7 @@ class _MatchStatsScreenState extends State<MatchStatsScreen> {
   final _playerService = PlayerService();
   final _statsService = StatsService();
   final _matchService = MatchService();
+  final _firestore = FirebaseFirestore.instance;
 
   // Section entries: { playerId: { player: PlayerModel, value: int } }
   final Map<String, Map<String, dynamic>> _t1Batting = {};
@@ -44,6 +47,111 @@ class _MatchStatsScreenState extends State<MatchStatsScreen> {
   String? _motmPlayerId;
   String? _motsPlayerId;
   bool _saving = false;
+  bool _loading = true;
+  bool _isEditMode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadExistingStats();
+  }
+
+  // ─────────────────── Load Existing Stats ───────────────────
+  Future<void> _loadExistingStats() async {
+    try {
+      // 1. Load existing stats from Firestore
+      final statsSnap = await _firestore
+          .collection('tournaments')
+          .doc(widget.tournamentId)
+          .collection('matches')
+          .doc(widget.matchId)
+          .collection('stats')
+          .get();
+
+      if (statsSnap.docs.isEmpty) {
+        // No stats — fresh entry
+        if (mounted) {
+          setState(() {
+            _loading = false;
+            _isEditMode = false;
+          });
+        }
+        return;
+      }
+
+      // 2. Stats exist — load them
+      // First, load all players from both teams
+      final t1Players = await _playerService
+          .streamPlayers(widget.tournamentId, widget.team1Id)
+          .first;
+      final t2Players = await _playerService
+          .streamPlayers(widget.tournamentId, widget.team2Id)
+          .first;
+
+      // Build player map: playerId -> PlayerModel
+      final Map<String, PlayerModel> allPlayers = {};
+      for (final p in t1Players) {
+        allPlayers[p.id] = p;
+      }
+      for (final p in t2Players) {
+        allPlayers[p.id] = p;
+      }
+
+      // 3. Distribute stats into sections
+      for (final doc in statsSnap.docs) {
+        final playerId = doc.id;
+        final data = doc.data();
+        final player = allPlayers[playerId];
+        if (player == null) continue;
+
+        final runs = (data['runs'] ?? 0) as int;
+        final wickets = (data['wickets'] ?? 0) as int;
+        final played = (data['played'] ?? false) as bool;
+        final isMom = (data['isMom'] ?? false) as bool;
+        final isMots = (data['isMots'] ?? false) as bool;
+
+        if (!played) continue;
+
+        // Determine which team the player belongs to
+        final isT1 = t1Players.any((p) => p.id == playerId);
+        final isT2 = t2Players.any((p) => p.id == playerId);
+
+        // Add to batting section (if runs > 0 OR if it's the only entry)
+        if (runs > 0) {
+          if (isT1) {
+            _t1Batting[playerId] = {'player': player, 'value': runs};
+          } else if (isT2) {
+            _t2Batting[playerId] = {'player': player, 'value': runs};
+          }
+        }
+
+        // Add to bowling section (if wickets > 0)
+        if (wickets > 0) {
+          if (isT1) {
+            _t1Bowling[playerId] = {'player': player, 'value': wickets};
+          } else if (isT2) {
+            _t2Bowling[playerId] = {'player': player, 'value': wickets};
+          }
+        }
+
+        // MOTM / MOTS
+        if (isMom) _motmPlayerId = playerId;
+        if (isMots) _motsPlayerId = playerId;
+      }
+
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _isEditMode = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading existing stats: $e');
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,95 +159,151 @@ class _MatchStatsScreenState extends State<MatchStatsScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF0A1931),
         iconTheme: const IconThemeData(color: Colors.white),
-        title: Text(
-          '${widget.team1Name} vs ${widget.team2Name}',
-          style: const TextStyle(color: Colors.white, fontSize: 16),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${widget.team1Name} vs ${widget.team2Name}',
+              style: const TextStyle(color: Colors.white, fontSize: 15),
+            ),
+            if (_isEditMode)
+              const Text(
+                'Edit Mode',
+                style: TextStyle(
+                  color: Color(0xFFD4AF37),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+          ],
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(12),
-        children: [
-          // SECTION 1: Team1 Batting
-          _section(
-            title: '${widget.team1Name} — Batting',
-            icon: Icons.sports_cricket,
-            teamId: widget.team1Id,
-            entries: _t1Batting,
-            valueLabel: 'Runs',
-          ),
+      body: _loading
+          ? const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(color: Color(0xFF0A1931)),
+                  SizedBox(height: 12),
+                  Text('Loading match stats...'),
+                ],
+              ),
+            )
+          : ListView(
+              padding: const EdgeInsets.all(12),
+              children: [
+                // ─── EDIT MODE BANNER ───
+                if (_isEditMode)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD4AF37).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: const Color(0xFFD4AF37).withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.edit,
+                            color: Color(0xFFD4AF37), size: 20),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Text(
+                            'Existing stats loaded. Edit and save to update.',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
 
-          // SECTION 2: Team2 Bowling
-          _section(
-            title: '${widget.team2Name} — Bowling',
-            icon: Icons.sports_baseball,
-            teamId: widget.team2Id,
-            entries: _t2Bowling,
-            valueLabel: 'Wickets',
-          ),
+                // SECTION 1: Team1 Batting
+                _section(
+                  title: '${widget.team1Name} — Batting',
+                  icon: Icons.sports_cricket,
+                  teamId: widget.team1Id,
+                  entries: _t1Batting,
+                  valueLabel: 'Runs',
+                ),
 
-          // SECTION 3: Team2 Batting
-          _section(
-            title: '${widget.team2Name} — Batting',
-            icon: Icons.sports_cricket,
-            teamId: widget.team2Id,
-            entries: _t2Batting,
-            valueLabel: 'Runs',
-          ),
+                // SECTION 2: Team2 Bowling
+                _section(
+                  title: '${widget.team2Name} — Bowling',
+                  icon: Icons.sports_baseball,
+                  teamId: widget.team2Id,
+                  entries: _t2Bowling,
+                  valueLabel: 'Wickets',
+                ),
 
-          // SECTION 4: Team1 Bowling
-          _section(
-            title: '${widget.team1Name} — Bowling',
-            icon: Icons.sports_baseball,
-            teamId: widget.team1Id,
-            entries: _t1Bowling,
-            valueLabel: 'Wickets',
-          ),
+                // SECTION 3: Team2 Batting
+                _section(
+                  title: '${widget.team2Name} — Batting',
+                  icon: Icons.sports_cricket,
+                  teamId: widget.team2Id,
+                  entries: _t2Batting,
+                  valueLabel: 'Runs',
+                ),
 
-          const SizedBox(height: 20),
-          const Divider(thickness: 2),
-          const SizedBox(height: 12),
+                // SECTION 4: Team1 Bowling
+                _section(
+                  title: '${widget.team1Name} — Bowling',
+                  icon: Icons.sports_baseball,
+                  teamId: widget.team1Id,
+                  entries: _t1Bowling,
+                  valueLabel: 'Wickets',
+                ),
 
-          // MOTM
-          _playerDropdown(
-            label: 'Man of the Match',
-            icon: Icons.star,
-            value: _motmPlayerId,
-            onChanged: (v) => setState(() => _motmPlayerId = v),
-          ),
+                const SizedBox(height: 20),
+                const Divider(thickness: 2),
+                const SizedBox(height: 12),
 
-          const SizedBox(height: 16),
+                // MOTM
+                _playerDropdown(
+                  label: 'Man of the Match',
+                  icon: Icons.star,
+                  value: _motmPlayerId,
+                  onChanged: (v) => setState(() => _motmPlayerId = v),
+                ),
 
-          // MOTS (optional)
-          _playerDropdown(
-            label: 'Man of the Series (optional)',
-            icon: Icons.emoji_events,
-            value: _motsPlayerId,
-            onChanged: (v) => setState(() => _motsPlayerId = v),
-          ),
+                const SizedBox(height: 16),
 
-          const SizedBox(height: 24),
+                // MOTS (optional)
+                _playerDropdown(
+                  label: 'Man of the Series (optional)',
+                  icon: Icons.emoji_events,
+                  value: _motsPlayerId,
+                  onChanged: (v) => setState(() => _motsPlayerId = v),
+                ),
 
-          // Save button
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0A1931),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+                const SizedBox(height: 24),
+
+                // Save button
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0A1931),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  onPressed: _saving ? null : _submit,
+                  icon: _saving
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white),
+                        )
+                      : const Icon(Icons.check),
+                  label: Text(
+                    _saving
+                        ? 'Saving...'
+                        : (_isEditMode ? 'Update Stats' : 'Save Stats'),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
             ),
-            onPressed: _saving ? null : _submit,
-            icon: _saving
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
-                  )
-                : const Icon(Icons.check),
-            label: Text(_saving ? 'Saving...' : 'Save Stats'),
-          ),
-          const SizedBox(height: 24),
-        ],
-      ),
     );
   }
 
@@ -331,6 +495,9 @@ class _MatchStatsScreenState extends State<MatchStatsScreen> {
   }) {
     final allPlayers = _allSelectedPlayers();
 
+    // Validate value exists in list
+    final validValue = allPlayers.any((p) => p.id == value) ? value : null;
+
     return InputDecorator(
       decoration: InputDecoration(
         labelText: label,
@@ -339,13 +506,12 @@ class _MatchStatsScreenState extends State<MatchStatsScreen> {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: value,
+          value: validValue,
           hint: const Text('Select'),
           isExpanded: true,
           isDense: true,
           items: [
-            const DropdownMenuItem<String>(
-                value: null, child: Text('None')),
+            const DropdownMenuItem<String>(value: null, child: Text('None')),
             ...allPlayers.map(
               (p) => DropdownMenuItem(
                 value: p.id,
@@ -437,7 +603,9 @@ class _MatchStatsScreenState extends State<MatchStatsScreen> {
       );
 
       if (mounted) {
-        _snack('Stats saved! Points calculated for $updatedCount users.');
+        _snack(_isEditMode
+            ? 'Stats updated! Points recalculated for $updatedCount users.'
+            : 'Stats saved! Points calculated for $updatedCount users.');
         Navigator.pop(context);
       }
     } catch (e) {
@@ -481,6 +649,19 @@ class _NumberFieldState extends State<_NumberField> {
     _ctrl = TextEditingController(
       text: widget.initialValue == 0 ? '' : widget.initialValue.toString(),
     );
+  }
+
+  @override
+  void didUpdateWidget(covariant _NumberField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Agar initialValue change ho (pre-load), to controller update karo
+    if (oldWidget.initialValue != widget.initialValue) {
+      final newText =
+          widget.initialValue == 0 ? '' : widget.initialValue.toString();
+      if (_ctrl.text != newText) {
+        _ctrl.text = newText;
+      }
+    }
   }
 
   @override

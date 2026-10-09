@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/fantasy/fpod_service.dart';
 
-/// FPOD History Screen
+/// PLP History Screen — Pro League Participants of the Match
 class FpodHistoryScreen extends StatefulWidget {
   final String tournamentId;
   final String tournamentName;
@@ -27,7 +27,7 @@ class _FpodHistoryScreenState extends State<FpodHistoryScreen> {
         backgroundColor: const Color(0xFF0A1931),
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
-          'FPOD History',
+          'PLP History',
           style: TextStyle(color: Colors.white),
         ),
       ),
@@ -50,7 +50,7 @@ class _FpodHistoryScreenState extends State<FpodHistoryScreen> {
                     Icon(Icons.history, size: 64, color: Colors.grey),
                     SizedBox(height: 12),
                     Text(
-                      'No FPOD history yet',
+                      'No PLP history yet',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -106,7 +106,7 @@ class _FpodHistoryScreenState extends State<FpodHistoryScreen> {
           const Icon(Icons.emoji_events, color: Colors.amber, size: 48),
           const SizedBox(height: 8),
           const Text(
-            'FPOD HISTORY',
+            'PLP HISTORY',
             style: TextStyle(
               color: Colors.white,
               fontSize: 18,
@@ -149,8 +149,9 @@ class _FpodHistoryScreenState extends State<FpodHistoryScreen> {
     final userCity = data['userCity'] as String? ?? '';
     final userPhotoUrl = data['userPhotoUrl'] as String? ?? '';
     final points = data['points'] ?? 0;
-    final rank = data['rank'] ?? 1;
-    final dateKey = data['date'] as String? ?? '';
+    final matchNumber = (data['matchNumber'] ?? '').toString();
+    final matchLabel =
+        matchNumber.isEmpty ? 'Match' : 'Match $matchNumber';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -186,7 +187,7 @@ class _FpodHistoryScreenState extends State<FpodHistoryScreen> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    _formatDateKey(dateKey),
+                    matchLabel,
                     style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
@@ -230,45 +231,31 @@ class _FpodHistoryScreenState extends State<FpodHistoryScreen> {
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFD4AF37), Color(0xFFFFC93C)],
+          Container(
+            padding: const EdgeInsets.symmetric(
+                horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFD4AF37), Color(0xFFFFC93C)],
+              ),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.bolt,
+                    color: Colors.white, size: 14),
+                const SizedBox(width: 3),
+                Text(
+                  '$points',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
-                  borderRadius: BorderRadius.circular(20),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.bolt,
-                        color: Colors.white, size: 14),
-                    const SizedBox(width: 3),
-                    Text(
-                      '$points',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Rank #$rank',
-                style: const TextStyle(
-                  fontSize: 10,
-                  color: Colors.grey,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -304,25 +291,5 @@ class _FpodHistoryScreenState extends State<FpodHistoryScreen> {
               ),
       ),
     );
-  }
-
-  String _formatDateKey(String dateKey) {
-    try {
-      final parts = dateKey.split('-');
-      if (parts.length != 3) return dateKey;
-
-      final year = parts[0];
-      final month = int.parse(parts[1]);
-      final day = int.parse(parts[2]);
-
-      const months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-      ];
-
-      return '$day ${months[month - 1]} $year';
-    } catch (_) {
-      return dateKey;
-    }
   }
 }

@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/fantasy/tournament_service.dart';
 
 /// Create Tournament Screen
+/// Creates tournament with status: 'active' directly (no draft)
+/// Submission lock is controlled manually from tournament detail screen
 class CreateTournamentScreen extends StatefulWidget {
   const CreateTournamentScreen({super.key});
 
@@ -19,7 +21,6 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
   String _format = 'T20';
   DateTime _startDate = DateTime.now().add(const Duration(days: 1));
   DateTime _endDate = DateTime.now().add(const Duration(days: 7));
-  DateTime _deadline = DateTime.now().add(const Duration(hours: 12));
   bool _saving = false;
 
   @override
@@ -44,6 +45,34 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            // ─── INFO BANNER ───
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0A1931).withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: const Color(0xFF0A1931).withValues(alpha: 0.2),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline,
+                      color: const Color(0xFF0A1931).withValues(alpha: 0.6),
+                      size: 20),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'Tournament direct active hoga. Squad submission lock/unlock aap tournament detail screen se control kar sakte hain.',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // ─── NAME ───
             TextFormField(
               controller: _nameCtrl,
               decoration: const InputDecoration(
@@ -52,10 +81,11 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
                 prefixIcon: Icon(Icons.emoji_events),
               ),
               validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Name daalein' : null,
+                  (v == null || v.trim().isEmpty) ? 'Enter tournament name' : null,
             ),
             const SizedBox(height: 16),
 
+            // ─── FORMAT ───
             DropdownButtonFormField<String>(
               initialValue: _format,
               decoration: const InputDecoration(
@@ -71,6 +101,7 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
             ),
             const SizedBox(height: 16),
 
+            // ─── START DATE ───
             _dateField(
               label: 'Start Date',
               value: _startDate,
@@ -78,21 +109,15 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
             ),
             const SizedBox(height: 16),
 
+            // ─── END DATE ───
             _dateField(
               label: 'End Date',
               value: _endDate,
               onPick: (d) => setState(() => _endDate = d),
             ),
-            const SizedBox(height: 16),
-
-            _dateField(
-              label: 'Squad Deadline',
-              value: _deadline,
-              withTime: true,
-              onPick: (d) => setState(() => _deadline = d),
-            ),
             const SizedBox(height: 32),
 
+            // ─── SAVE BUTTON ───
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF0A1931),
@@ -108,7 +133,7 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
                           strokeWidth: 2, color: Colors.white),
                     )
                   : const Icon(Icons.check),
-              label: Text(_saving ? 'Saving...' : 'Create Tournament'),
+              label: Text(_saving ? 'Saving...' : 'SAVE'),
             ),
           ],
         ),
@@ -116,6 +141,7 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
     );
   }
 
+  // ─── DATE FIELD ───
   Widget _dateField({
     required String label,
     required DateTime value,
@@ -162,15 +188,19 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
   String _fmt(DateTime d) =>
       '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
+  // ─── SUBMIT ───
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
     if (_endDate.isBefore(_startDate)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('End date start se pehle nahi ho sakti')),
+        const SnackBar(content: Text('End date cannot be before start date')),
       );
       return;
     }
+
     setState(() => _saving = true);
+
     try {
       final user = FirebaseAuth.instance.currentUser;
       await _service.createTournament(
@@ -178,19 +208,25 @@ class _CreateTournamentScreenState extends State<CreateTournamentScreen> {
         format: _format,
         startDate: _startDate,
         endDate: _endDate,
-        deadline: _deadline,
+        deadline: _endDate, // deadline not used anymore, but keeping for backward compat
         createdBy: user?.email ?? 'admin',
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tournament ban gaya!')),
+          const SnackBar(
+            content: Text('Tournament created and active!'),
+            backgroundColor: Color(0xFF00C9A7),
+          ),
         );
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
