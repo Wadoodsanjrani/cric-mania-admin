@@ -3,9 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'matches_screen.dart';
 import 'news_screen.dart';
-import 'login_screen.dart';
 import 'api_tracker_screen.dart';
-import 'fantasy/fantasy_home_screen.dart';  // ← NAYA
+import 'fantasy/fantasy_home_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -23,13 +22,34 @@ class DashboardScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
+            tooltip: 'Logout',
             onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              if (context.mounted) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => LoginScreen()),
-                );
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Logout?'),
+                  content: const Text('Kya aap logout karna chahte hain?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0A1931),
+                      ),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text(
+                        'Logout',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm == true) {
+                await FirebaseAuth.instance.signOut();
+                // AuthGate will handle navigation automatically
               }
             },
           ),
@@ -70,7 +90,6 @@ class DashboardScreen extends StatelessWidget {
             Icons.sync_alt,
             const ApiTrackerScreen(),
           ),
-          // ↓↓↓ NAYA — Fantasy League button ↓↓↓
           _actionTile(
             context,
             '🏆 Fantasy League',

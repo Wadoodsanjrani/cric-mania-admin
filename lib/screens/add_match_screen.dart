@@ -47,6 +47,10 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
   List<Map<String, dynamic>> _team1Staff = [];
   List<Map<String, dynamic>> _team2Staff = [];
 
+  // ✅ NAYA: SQUAD
+  List<Map<String, dynamic>> _team1Squad = [];
+  List<Map<String, dynamic>> _team2Squad = [];
+
   bool _loading = false;
 
   @override
@@ -78,7 +82,6 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
     setState(() => _loading = true);
 
     try {
-      // ✅ Status: LIVE / UPCOMING / RESULT
       String statusValue;
       if (_matchStatus == 'live') {
         statusValue = 'LIVE';
@@ -107,6 +110,9 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
         'team2Bench': _team2Bench,
         'team1Staff': _team1Staff,
         'team2Staff': _team2Staff,
+        // ✅ NAYA: Squad
+        'team1Squad': _team1Squad,
+        'team2Squad': _team2Squad,
       };
 
       if (_matchFormat == 'TEST') {
@@ -408,13 +414,52 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
           const SizedBox(height: 24),
 
           // ═══════════════════════════════════════════════
+          // ✅ NAYA: SQUAD SECTION
+          // ═══════════════════════════════════════════════
+          const Divider(height: 40, thickness: 2),
+          const Text(
+            '👥 SQUAD',
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0A1931)),
+          ),
+          const SizedBox(height: 16),
+
+          _sectionHeader(
+              '${_team1Ctrl.text.isEmpty ? "Team 1" : _team1Ctrl.text} Squad'),
+          _addButton('+ ADD PLAYER (Team 1 Squad)',
+              () => _addSimplePlayer(_team1Squad, 'Team 1 Squad')),
+          ..._team1Squad
+              .asMap()
+              .entries
+              .map((e) => _simplePlayerCard(e.value, e.key, _team1Squad))
+              .toList(),
+
+          const SizedBox(height: 20),
+
+          _sectionHeader(
+              '${_team2Ctrl.text.isEmpty ? "Team 2" : _team2Ctrl.text} Squad'),
+          _addButton('+ ADD PLAYER (Team 2 Squad)',
+              () => _addSimplePlayer(_team2Squad, 'Team 2 Squad')),
+          ..._team2Squad
+              .asMap()
+              .entries
+              .map((e) => _simplePlayerCard(e.value, e.key, _team2Squad))
+              .toList(),
+
+          const SizedBox(height: 24),
+
+          // ═══════════════════════════════════════════════
           // ✅ PLAYING XI SECTION
           // ═══════════════════════════════════════════════
           const Divider(height: 40, thickness: 2),
           const Text(
             '🏏 PLAYING XI',
             style: TextStyle(
-                fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0A1931)),
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0A1931)),
           ),
           const SizedBox(height: 16),
 
@@ -448,7 +493,9 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
           const Text(
             '🪑 BENCH',
             style: TextStyle(
-                fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0A1931)),
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0A1931)),
           ),
           const SizedBox(height: 16),
 
@@ -482,7 +529,9 @@ class _AddMatchScreenState extends State<AddMatchScreen> {
           const Text(
             '👔 STAFF',
             style: TextStyle(
-                fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0A1931)),
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0A1931)),
           ),
           const SizedBox(height: 16),
 

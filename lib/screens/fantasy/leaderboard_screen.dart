@@ -115,7 +115,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.photo_library),
-              title: const Text('Choose from Gallery'),
+              title: Text('Upload $label'),
               onTap: () {
                 Navigator.pop(ctx);
                 _pickAndUpload(field);
@@ -123,7 +123,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             ),
             if (hasImage)
               ListTile(
-                leading: const Icon(Icons.delete_outline, color: Colors.red),
+                leading:
+                    const Icon(Icons.delete_outline, color: Colors.red),
                 title: const Text('Remove'),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -164,30 +165,18 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               style: TextStyle(color: Colors.white),
             ),
             actions: [
-              if (config.hasCornerLogo)
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8, vertical: 8),
-                  child: GestureDetector(
-                    onLongPress: () => _showImageOptions(
-                        'corner', 'Corner Logo', true),
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: _base64Image(
-                          config.cornerLogoBase64,
-                          icon: Icons.image_not_supported,
-                        ),
-                      ),
-                    ),
-                  ),
+              // Corner Logo button (always visible)
+              IconButton(
+                icon: Icon(
+                  config.hasCornerLogo
+                      ? Icons.image
+                      : Icons.add_photo_alternate,
+                  color: Colors.white,
                 ),
+                tooltip: 'Corner Logo',
+                onPressed: () => _showImageOptions(
+                    'corner', 'Corner Logo', config.hasCornerLogo),
+              ),
             ],
           ),
           body: Stack(
@@ -195,14 +184,36 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               ListView(
                 padding: const EdgeInsets.all(12),
                 children: [
+                  // Banner section
+                  _sectionLabel('Sponsor Banner'),
+                  const SizedBox(height: 6),
                   _bannerWidget(config),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
+                  _editButton(
+                    label:
+                        config.hasBanner ? 'Change Banner' : 'Upload Banner',
+                    icon: config.hasBanner
+                        ? Icons.edit
+                        : Icons.add_photo_alternate,
+                    onTap: () => _showImageOptions(
+                        'banner', 'Banner', config.hasBanner),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Slots section
+                  _sectionLabel('Sponsor Slots'),
+                  const SizedBox(height: 6),
                   _slotsRow(config),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
+                  _editButton(
+                    label: 'Edit Slots',
+                    icon: Icons.grid_view,
+                    onTap: () => _showSlotOptions(config),
+                  ),
+                  const SizedBox(height: 20),
 
-                  // ─── MATCH NUMBER CHIP ───
+                  // Latest Match Chip
                   _latestMatchChip(),
-
                   const SizedBox(height: 16),
 
                   const Padding(
@@ -233,7 +244,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 Container(
                   color: Colors.black.withValues(alpha: 0.5),
                   child: const Center(
-                    child: CircularProgressIndicator(color: Colors.white),
+                    child:
+                        CircularProgressIndicator(color: Colors.white),
                   ),
                 ),
             ],
@@ -243,14 +255,121 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     );
   }
 
-  // ─── Latest Match Number Chip ───
+  Widget _sectionLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: Color(0xFF0A1931),
+          letterSpacing: 0.8,
+        ),
+      ),
+    );
+  }
+
+  Widget _editButton({
+    required String label,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        icon: Icon(icon, size: 18),
+        label: Text(label),
+        onPressed: onTap,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFF0A1931),
+          side: const BorderSide(color: Color(0xFF0A1931)),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showSlotOptions(SponsorConfig config) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(12),
+              child: Text(
+                'Edit Sponsor Slots',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.looks_one),
+              title: Text(config.slot1Base64.isEmpty
+                  ? 'Upload Slot 1'
+                  : 'Change Slot 1'),
+              trailing: config.slot1Base64.isNotEmpty
+                  ? const Icon(Icons.check_circle, color: Colors.green)
+                  : null,
+              onTap: () {
+                Navigator.pop(ctx);
+                _showImageOptions('slot1', 'Slot 1',
+                    config.slot1Base64.isNotEmpty);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.looks_two),
+              title: Text(config.slot2Base64.isEmpty
+                  ? 'Upload Slot 2'
+                  : 'Change Slot 2'),
+              trailing: config.slot2Base64.isNotEmpty
+                  ? const Icon(Icons.check_circle, color: Colors.green)
+                  : null,
+              onTap: () {
+                Navigator.pop(ctx);
+                _showImageOptions('slot2', 'Slot 2',
+                    config.slot2Base64.isNotEmpty);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.looks_3),
+              title: Text(config.slot3Base64.isEmpty
+                  ? 'Upload Slot 3'
+                  : 'Change Slot 3'),
+              trailing: config.slot3Base64.isNotEmpty
+                  ? const Icon(Icons.check_circle, color: Colors.green)
+                  : null,
+              onTap: () {
+                Navigator.pop(ctx);
+                _showImageOptions('slot3', 'Slot 3',
+                    config.slot3Base64.isNotEmpty);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.close),
+              title: const Text('Cancel'),
+              onTap: () => Navigator.pop(ctx),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _latestMatchChip() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('tournaments')
           .doc(widget.tournamentId)
           .collection('matches')
-          .orderBy('createdAt', descending: true)
+          .orderBy('timestamp', descending: true)
           .limit(1)
           .snapshots(),
       builder: (context, snapshot) {
@@ -259,15 +378,16 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
         if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
           final matchData =
               snapshot.data!.docs.first.data() as Map<String, dynamic>;
-          final matchNumber = (matchData['matchNumber'] ?? '').toString();
+          final matchNumber =
+              (matchData['matchNumber'] ?? '').toString();
           if (matchNumber.isNotEmpty) {
             matchLabel = 'Latest Match: Match $matchNumber • Overall';
           }
         }
 
         return Container(
-          padding: const EdgeInsets.symmetric(
-              horizontal: 14, vertical: 10),
+          padding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [Color(0xFF0A1931), Color(0xFF1B3A5C)],
@@ -332,28 +452,24 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   }
 
   Widget _bannerWidget(SponsorConfig config) {
-    return GestureDetector(
-      onLongPress: () => _showImageOptions(
-          'banner', 'Banner', config.hasBanner),
-      child: Container(
-        width: double.infinity,
-        height: 140,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: config.hasBanner
-              ? _base64Image(config.bannerBase64)
-              : _bannerPlaceholder(),
-        ),
+    return Container(
+      width: double.infinity,
+      height: 140,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: config.hasBanner
+            ? _base64Image(config.bannerBase64)
+            : _bannerPlaceholder(),
       ),
     );
   }
@@ -397,27 +513,22 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
   Widget _slotWidget(String base64String, String field, int number) {
     final has = base64String.isNotEmpty;
-    return GestureDetector(
-      onLongPress: () => _showImageOptions(field, 'Slot $number', has),
-      child: Container(
-        height: 60,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: has
-              ? _base64Image(base64String)
-              : _slotPlaceholder(number),
-        ),
+    return Container(
+      height: 60,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: has ? _base64Image(base64String) : _slotPlaceholder(number),
       ),
     );
   }

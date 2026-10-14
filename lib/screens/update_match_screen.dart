@@ -48,6 +48,10 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
   List<Map<String, dynamic>> _team1Staff = [];
   List<Map<String, dynamic>> _team2Staff = [];
 
+  // ✅ NAYA: SQUAD
+  List<Map<String, dynamic>> _team1Squad = [];
+  List<Map<String, dynamic>> _team2Squad = [];
+
   bool _loading = true;
 
   @override
@@ -91,7 +95,6 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
         _tossCtrl.text = data['toss'] ?? '';
         _manOfTheMatchCtrl.text = data['manOfTheMatch'] ?? '';
 
-        // ✅ 3 statuses handle karo
         final statusStr =
             (data['status'] ?? 'LIVE').toString().toUpperCase();
         if (statusStr == 'LIVE') {
@@ -104,7 +107,7 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
 
         _matchFormat = data['format'] ?? 'ODI';
 
-        // ✅ Playing XI, Bench, Staff load
+        // Playing XI, Bench, Staff load
         _team1PlayingXI = List<Map<String, dynamic>>.from(
             (data['team1PlayingXI'] ?? [])
                 .map((e) => Map<String, dynamic>.from(e)));
@@ -122,6 +125,14 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
                 .map((e) => Map<String, dynamic>.from(e)));
         _team2Staff = List<Map<String, dynamic>>.from(
             (data['team2Staff'] ?? [])
+                .map((e) => Map<String, dynamic>.from(e)));
+
+        // ✅ NAYA: Squad load
+        _team1Squad = List<Map<String, dynamic>>.from(
+            (data['team1Squad'] ?? [])
+                .map((e) => Map<String, dynamic>.from(e)));
+        _team2Squad = List<Map<String, dynamic>>.from(
+            (data['team2Squad'] ?? [])
                 .map((e) => Map<String, dynamic>.from(e)));
 
         if (_matchFormat == 'TEST') {
@@ -170,7 +181,6 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     setState(() => _loading = true);
 
     try {
-      // ✅ Status: LIVE / UPCOMING / RESULT
       String statusValue;
       if (_matchStatus == 'live') {
         statusValue = 'LIVE';
@@ -189,7 +199,6 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
         'status': statusValue,
         'format': _matchFormat,
         'result': _resultCtrl.text.trim(),
-        // ✅ NEW fields
         'toss': _tossCtrl.text.trim(),
         'manOfTheMatch': _manOfTheMatchCtrl.text.trim(),
         'team1PlayingXI': _team1PlayingXI,
@@ -198,6 +207,9 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
         'team2Bench': _team2Bench,
         'team1Staff': _team1Staff,
         'team2Staff': _team2Staff,
+        // ✅ NAYA: Squad save
+        'team1Squad': _team1Squad,
+        'team2Squad': _team2Squad,
       };
 
       if (_matchFormat == 'TEST') {
@@ -283,9 +295,6 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           ),
           const SizedBox(height: 16),
 
-          // ═══════════════════════════════════════════════
-          // ✅ STATUS: 3 OPTIONS (LIVE / RESULT / UPCOMING)
-          // ═══════════════════════════════════════════════
           const Text('Match Status:',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
           const SizedBox(height: 8),
@@ -329,7 +338,6 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           _textField(_team2Ctrl, 'Team 2 Name'),
           const SizedBox(height: 12),
 
-          // ✅ NEW: Toss aur Man of the Match
           _textField(_tossCtrl, 'Toss'),
           const SizedBox(height: 12),
           _textField(_manOfTheMatchCtrl, 'Man of the Match'),
@@ -492,6 +500,43 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
                 .map((e) => _bowlerCard(e.value, e.key, _t1Innings2Bowling))
                 .toList(),
           ],
+
+          const SizedBox(height: 24),
+
+          // ═══════════════════════════════════════════════
+          // ✅ NAYA: SQUAD SECTION
+          // ═══════════════════════════════════════════════
+          const Divider(height: 40, thickness: 2),
+          const Text(
+            '👥 SQUAD',
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0A1931)),
+          ),
+          const SizedBox(height: 16),
+
+          _sectionHeader(
+              '${_team1Ctrl.text.isEmpty ? "Team 1" : _team1Ctrl.text} Squad'),
+          _addButton('+ ADD PLAYER (Team 1 Squad)',
+              () => _addSimplePlayer(_team1Squad, 'Team 1 Squad')),
+          ..._team1Squad
+              .asMap()
+              .entries
+              .map((e) => _simplePlayerCard(e.value, e.key, _team1Squad))
+              .toList(),
+
+          const SizedBox(height: 20),
+
+          _sectionHeader(
+              '${_team2Ctrl.text.isEmpty ? "Team 2" : _team2Ctrl.text} Squad'),
+          _addButton('+ ADD PLAYER (Team 2 Squad)',
+              () => _addSimplePlayer(_team2Squad, 'Team 2 Squad')),
+          ..._team2Squad
+              .asMap()
+              .entries
+              .map((e) => _simplePlayerCard(e.value, e.key, _team2Squad))
+              .toList(),
 
           const SizedBox(height: 24),
 

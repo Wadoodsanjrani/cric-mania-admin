@@ -53,3 +53,7 @@ android/.gradle/
 
 # Local backups
 *.backup
+
+# Backup files
+*.bak
+*.old
