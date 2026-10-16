@@ -54,6 +54,38 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
 
   bool _loading = true;
 
+  // ─── SECTION EXPAND/COLLAPSE STATE ───
+  final Map<String, bool> _expanded = {
+    // ODI/T20
+    't1Batting': true,
+    't2Bowling': true,
+    't2Batting': true,
+    't1Bowling': true,
+    // TEST
+    't1Inn1Batting': true,
+    't2Inn1Bowling': true,
+    't2Inn1Batting': true,
+    't1Inn1Bowling': true,
+    't1Inn2Batting': true,
+    't2Inn2Bowling': true,
+    't2Inn2Batting': true,
+    't1Inn2Bowling': true,
+    // Squad / XI / Bench / Staff
+    't1Squad': true,
+    't2Squad': true,
+    't1XI': true,
+    't2XI': true,
+    't1Bench': true,
+    't2Bench': true,
+    't1Staff': true,
+    't2Staff': true,
+  };
+
+  bool _isExpanded(String key) => _expanded[key] ?? true;
+  void _toggleSection(String key) {
+    setState(() => _expanded[key] = !_isExpanded(key));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -377,134 +409,184 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
 
           const SizedBox(height: 24),
 
+          // ═══════════════════════════════════════════════
+          // ODI / T20 SECTIONS
+          // ═══════════════════════════════════════════════
           if (_matchFormat != 'TEST') ...[
-            _sectionHeader('🏏 ${_team1Ctrl.text} BATTING'),
-            _addButton(
-                '+ ADD BATTER', () => _addBatter(_team1Batting, 'Team 1')),
-            ..._team1Batting
-                .asMap()
-                .entries
-                .map((e) => _batterCard(e.value, e.key, _team1Batting))
-                .toList(),
+            _sectionHeader('🏏 ${_team1Ctrl.text} BATTING',
+                sectionKey: 't1Batting'),
+            if (_isExpanded('t1Batting')) ...[
+              _addButton(
+                  '+ ADD BATTER', () => _addBatter(_team1Batting, 'Team 1')),
+              ..._team1Batting
+                  .asMap()
+                  .entries
+                  .map((e) => _batterCard(e.value, e.key, _team1Batting))
+                  .toList(),
+            ],
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
-            _sectionHeader('🎯 ${_team2Ctrl.text} BOWLING'),
-            _addButton(
-                '+ ADD BOWLER', () => _addBowler(_team2Bowling, 'Team 2')),
-            ..._team2Bowling
-                .asMap()
-                .entries
-                .map((e) => _bowlerCard(e.value, e.key, _team2Bowling))
-                .toList(),
+            _sectionHeader('🎯 ${_team2Ctrl.text} BOWLING',
+                sectionKey: 't2Bowling'),
+            if (_isExpanded('t2Bowling')) ...[
+              _addButton(
+                  '+ ADD BOWLER', () => _addBowler(_team2Bowling, 'Team 2')),
+              ..._team2Bowling
+                  .asMap()
+                  .entries
+                  .map((e) => _bowlerCard(e.value, e.key, _team2Bowling))
+                  .toList(),
+            ],
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
-            _sectionHeader('🏏 ${_team2Ctrl.text} BATTING'),
-            _addButton(
-                '+ ADD BATTER', () => _addBatter(_team2Batting, 'Team 2')),
-            ..._team2Batting
-                .asMap()
-                .entries
-                .map((e) => _batterCard(e.value, e.key, _team2Batting))
-                .toList(),
+            _sectionHeader('🏏 ${_team2Ctrl.text} BATTING',
+                sectionKey: 't2Batting'),
+            if (_isExpanded('t2Batting')) ...[
+              _addButton(
+                  '+ ADD BATTER', () => _addBatter(_team2Batting, 'Team 2')),
+              ..._team2Batting
+                  .asMap()
+                  .entries
+                  .map((e) => _batterCard(e.value, e.key, _team2Batting))
+                  .toList(),
+            ],
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
-            _sectionHeader('🎯 ${_team1Ctrl.text} BOWLING'),
-            _addButton(
-                '+ ADD BOWLER', () => _addBowler(_team1Bowling, 'Team 1')),
-            ..._team1Bowling
-                .asMap()
-                .entries
-                .map((e) => _bowlerCard(e.value, e.key, _team1Bowling))
-                .toList(),
+            _sectionHeader('🎯 ${_team1Ctrl.text} BOWLING',
+                sectionKey: 't1Bowling'),
+            if (_isExpanded('t1Bowling')) ...[
+              _addButton(
+                  '+ ADD BOWLER', () => _addBowler(_team1Bowling, 'Team 1')),
+              ..._team1Bowling
+                  .asMap()
+                  .entries
+                  .map((e) => _bowlerCard(e.value, e.key, _team1Bowling))
+                  .toList(),
+            ],
           ],
 
+          // ═══════════════════════════════════════════════
+          // TEST SECTIONS
+          // ═══════════════════════════════════════════════
           if (_matchFormat == 'TEST') ...[
-            _sectionHeader('🏏 1st INNINGS — ${_team1Ctrl.text} BATTING'),
-            _addButton('+ ADD BATTER',
-                () => _addBatter(_t1Innings1Batting, 'Team 1 (1st)')),
-            ..._t1Innings1Batting
-                .asMap()
-                .entries
-                .map((e) => _batterCard(e.value, e.key, _t1Innings1Batting))
-                .toList(),
+            _sectionHeader('🏏 1st INNINGS — ${_team1Ctrl.text} BATTING',
+                sectionKey: 't1Inn1Batting'),
+            if (_isExpanded('t1Inn1Batting')) ...[
+              _addButton('+ ADD BATTER',
+                  () => _addBatter(_t1Innings1Batting, 'Team 1 (1st)')),
+              ..._t1Innings1Batting
+                  .asMap()
+                  .entries
+                  .map((e) => _batterCard(e.value, e.key, _t1Innings1Batting))
+                  .toList(),
+            ],
 
-            _sectionHeader('🎯 1st INNINGS — ${_team2Ctrl.text} BOWLING'),
-            _addButton('+ ADD BOWLER',
-                () => _addBowler(_t2Innings1Bowling, 'Team 2 (1st)')),
-            ..._t2Innings1Bowling
-                .asMap()
-                .entries
-                .map((e) => _bowlerCard(e.value, e.key, _t2Innings1Bowling))
-                .toList(),
+            const SizedBox(height: 16),
 
-            const Divider(height: 30),
-
-            _sectionHeader('🏏 2nd INNINGS — ${_team2Ctrl.text} BATTING'),
-            _addButton('+ ADD BATTER',
-                () => _addBatter(_t2Innings1Batting, 'Team 2 (2nd)')),
-            ..._t2Innings1Batting
-                .asMap()
-                .entries
-                .map((e) => _batterCard(e.value, e.key, _t2Innings1Batting))
-                .toList(),
-
-            _sectionHeader('🎯 2nd INNINGS — ${_team1Ctrl.text} BOWLING'),
-            _addButton('+ ADD BOWLER',
-                () => _addBowler(_t1Innings1Bowling, 'Team 1 (2nd)')),
-            ..._t1Innings1Bowling
-                .asMap()
-                .entries
-                .map((e) => _bowlerCard(e.value, e.key, _t1Innings1Bowling))
-                .toList(),
+            _sectionHeader('🎯 1st INNINGS — ${_team2Ctrl.text} BOWLING',
+                sectionKey: 't2Inn1Bowling'),
+            if (_isExpanded('t2Inn1Bowling')) ...[
+              _addButton('+ ADD BOWLER',
+                  () => _addBowler(_t2Innings1Bowling, 'Team 2 (1st)')),
+              ..._t2Innings1Bowling
+                  .asMap()
+                  .entries
+                  .map((e) => _bowlerCard(e.value, e.key, _t2Innings1Bowling))
+                  .toList(),
+            ],
 
             const Divider(height: 30),
 
-            _sectionHeader('🏏 3rd INNINGS — ${_team1Ctrl.text} BATTING'),
-            _addButton('+ ADD BATTER',
-                () => _addBatter(_t1Innings2Batting, 'Team 1 (3rd)')),
-            ..._t1Innings2Batting
-                .asMap()
-                .entries
-                .map((e) => _batterCard(e.value, e.key, _t1Innings2Batting))
-                .toList(),
+            _sectionHeader('🏏 2nd INNINGS — ${_team2Ctrl.text} BATTING',
+                sectionKey: 't2Inn1Batting'),
+            if (_isExpanded('t2Inn1Batting')) ...[
+              _addButton('+ ADD BATTER',
+                  () => _addBatter(_t2Innings1Batting, 'Team 2 (2nd)')),
+              ..._t2Innings1Batting
+                  .asMap()
+                  .entries
+                  .map((e) => _batterCard(e.value, e.key, _t2Innings1Batting))
+                  .toList(),
+            ],
 
-            _sectionHeader('🎯 3rd INNINGS — ${_team2Ctrl.text} BOWLING'),
-            _addButton('+ ADD BOWLER',
-                () => _addBowler(_t2Innings2Bowling, 'Team 2 (3rd)')),
-            ..._t2Innings2Bowling
-                .asMap()
-                .entries
-                .map((e) => _bowlerCard(e.value, e.key, _t2Innings2Bowling))
-                .toList(),
+            const SizedBox(height: 16),
+
+            _sectionHeader('🎯 2nd INNINGS — ${_team1Ctrl.text} BOWLING',
+                sectionKey: 't1Inn1Bowling'),
+            if (_isExpanded('t1Inn1Bowling')) ...[
+              _addButton('+ ADD BOWLER',
+                  () => _addBowler(_t1Innings1Bowling, 'Team 1 (2nd)')),
+              ..._t1Innings1Bowling
+                  .asMap()
+                  .entries
+                  .map((e) => _bowlerCard(e.value, e.key, _t1Innings1Bowling))
+                  .toList(),
+            ],
 
             const Divider(height: 30),
 
-            _sectionHeader('🏏 4th INNINGS — ${_team2Ctrl.text} BATTING'),
-            _addButton('+ ADD BATTER',
-                () => _addBatter(_t2Innings2Batting, 'Team 2 (4th)')),
-            ..._t2Innings2Batting
-                .asMap()
-                .entries
-                .map((e) => _batterCard(e.value, e.key, _t2Innings2Batting))
-                .toList(),
+            _sectionHeader('🏏 3rd INNINGS — ${_team1Ctrl.text} BATTING',
+                sectionKey: 't1Inn2Batting'),
+            if (_isExpanded('t1Inn2Batting')) ...[
+              _addButton('+ ADD BATTER',
+                  () => _addBatter(_t1Innings2Batting, 'Team 1 (3rd)')),
+              ..._t1Innings2Batting
+                  .asMap()
+                  .entries
+                  .map((e) => _batterCard(e.value, e.key, _t1Innings2Batting))
+                  .toList(),
+            ],
 
-            _sectionHeader('🎯 4th INNINGS — ${_team1Ctrl.text} BOWLING'),
-            _addButton('+ ADD BOWLER',
-                () => _addBowler(_t1Innings2Bowling, 'Team 1 (4th)')),
-            ..._t1Innings2Bowling
-                .asMap()
-                .entries
-                .map((e) => _bowlerCard(e.value, e.key, _t1Innings2Bowling))
-                .toList(),
+            const SizedBox(height: 16),
+
+            _sectionHeader('🎯 3rd INNINGS — ${_team2Ctrl.text} BOWLING',
+                sectionKey: 't2Inn2Bowling'),
+            if (_isExpanded('t2Inn2Bowling')) ...[
+              _addButton('+ ADD BOWLER',
+                  () => _addBowler(_t2Innings2Bowling, 'Team 2 (3rd)')),
+              ..._t2Innings2Bowling
+                  .asMap()
+                  .entries
+                  .map((e) => _bowlerCard(e.value, e.key, _t2Innings2Bowling))
+                  .toList(),
+            ],
+
+            const Divider(height: 30),
+
+            _sectionHeader('🏏 4th INNINGS — ${_team2Ctrl.text} BATTING',
+                sectionKey: 't2Inn2Batting'),
+            if (_isExpanded('t2Inn2Batting')) ...[
+              _addButton('+ ADD BATTER',
+                  () => _addBatter(_t2Innings2Batting, 'Team 2 (4th)')),
+              ..._t2Innings2Batting
+                  .asMap()
+                  .entries
+                  .map((e) => _batterCard(e.value, e.key, _t2Innings2Batting))
+                  .toList(),
+            ],
+
+            const SizedBox(height: 16),
+
+            _sectionHeader('🎯 4th INNINGS — ${_team1Ctrl.text} BOWLING',
+                sectionKey: 't1Inn2Bowling'),
+            if (_isExpanded('t1Inn2Bowling')) ...[
+              _addButton('+ ADD BOWLER',
+                  () => _addBowler(_t1Innings2Bowling, 'Team 1 (4th)')),
+              ..._t1Innings2Bowling
+                  .asMap()
+                  .entries
+                  .map((e) => _bowlerCard(e.value, e.key, _t1Innings2Bowling))
+                  .toList(),
+            ],
           ],
 
           const SizedBox(height: 24),
 
           // ═══════════════════════════════════════════════
-          // ✅ NAYA: SQUAD SECTION
+          // SQUAD SECTION
           // ═══════════════════════════════════════════════
           const Divider(height: 40, thickness: 2),
           const Text(
@@ -517,31 +599,37 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           const SizedBox(height: 16),
 
           _sectionHeader(
-              '${_team1Ctrl.text.isEmpty ? "Team 1" : _team1Ctrl.text} Squad'),
-          _addButton('+ ADD PLAYER (Team 1 Squad)',
-              () => _addSimplePlayer(_team1Squad, 'Team 1 Squad')),
-          ..._team1Squad
-              .asMap()
-              .entries
-              .map((e) => _simplePlayerCard(e.value, e.key, _team1Squad))
-              .toList(),
+              '${_team1Ctrl.text.isEmpty ? "Team 1" : _team1Ctrl.text} Squad',
+              sectionKey: 't1Squad'),
+          if (_isExpanded('t1Squad')) ...[
+            _addButton('+ ADD PLAYER (Team 1 Squad)',
+                () => _addSimplePlayer(_team1Squad, 'Team 1 Squad')),
+            ..._team1Squad
+                .asMap()
+                .entries
+                .map((e) => _simplePlayerCard(e.value, e.key, _team1Squad))
+                .toList(),
+          ],
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
           _sectionHeader(
-              '${_team2Ctrl.text.isEmpty ? "Team 2" : _team2Ctrl.text} Squad'),
-          _addButton('+ ADD PLAYER (Team 2 Squad)',
-              () => _addSimplePlayer(_team2Squad, 'Team 2 Squad')),
-          ..._team2Squad
-              .asMap()
-              .entries
-              .map((e) => _simplePlayerCard(e.value, e.key, _team2Squad))
-              .toList(),
+              '${_team2Ctrl.text.isEmpty ? "Team 2" : _team2Ctrl.text} Squad',
+              sectionKey: 't2Squad'),
+          if (_isExpanded('t2Squad')) ...[
+            _addButton('+ ADD PLAYER (Team 2 Squad)',
+                () => _addSimplePlayer(_team2Squad, 'Team 2 Squad')),
+            ..._team2Squad
+                .asMap()
+                .entries
+                .map((e) => _simplePlayerCard(e.value, e.key, _team2Squad))
+                .toList(),
+          ],
 
           const SizedBox(height: 24),
 
           // ═══════════════════════════════════════════════
-          // ✅ PLAYING XI SECTION
+          // PLAYING XI SECTION
           // ═══════════════════════════════════════════════
           const Divider(height: 40, thickness: 2),
           const Text(
@@ -554,31 +642,37 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           const SizedBox(height: 16),
 
           _sectionHeader(
-              '${_team1Ctrl.text.isEmpty ? "Team 1" : _team1Ctrl.text} Playing XI'),
-          _addButton('+ ADD PLAYER (Team 1 XI)',
-              () => _addSimplePlayer(_team1PlayingXI, 'Team 1 XI')),
-          ..._team1PlayingXI
-              .asMap()
-              .entries
-              .map((e) => _simplePlayerCard(e.value, e.key, _team1PlayingXI))
-              .toList(),
+              '${_team1Ctrl.text.isEmpty ? "Team 1" : _team1Ctrl.text} Playing XI',
+              sectionKey: 't1XI'),
+          if (_isExpanded('t1XI')) ...[
+            _addButton('+ ADD PLAYER (Team 1 XI)',
+                () => _addSimplePlayer(_team1PlayingXI, 'Team 1 XI')),
+            ..._team1PlayingXI
+                .asMap()
+                .entries
+                .map((e) => _simplePlayerCard(e.value, e.key, _team1PlayingXI))
+                .toList(),
+          ],
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
           _sectionHeader(
-              '${_team2Ctrl.text.isEmpty ? "Team 2" : _team2Ctrl.text} Playing XI'),
-          _addButton('+ ADD PLAYER (Team 2 XI)',
-              () => _addSimplePlayer(_team2PlayingXI, 'Team 2 XI')),
-          ..._team2PlayingXI
-              .asMap()
-              .entries
-              .map((e) => _simplePlayerCard(e.value, e.key, _team2PlayingXI))
-              .toList(),
+              '${_team2Ctrl.text.isEmpty ? "Team 2" : _team2Ctrl.text} Playing XI',
+              sectionKey: 't2XI'),
+          if (_isExpanded('t2XI')) ...[
+            _addButton('+ ADD PLAYER (Team 2 XI)',
+                () => _addSimplePlayer(_team2PlayingXI, 'Team 2 XI')),
+            ..._team2PlayingXI
+                .asMap()
+                .entries
+                .map((e) => _simplePlayerCard(e.value, e.key, _team2PlayingXI))
+                .toList(),
+          ],
 
           const Divider(height: 40, thickness: 2),
 
           // ═══════════════════════════════════════════════
-          // ✅ BENCH SECTION
+          // BENCH SECTION
           // ═══════════════════════════════════════════════
           const Text(
             '🪑 BENCH',
@@ -590,31 +684,37 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           const SizedBox(height: 16),
 
           _sectionHeader(
-              '${_team1Ctrl.text.isEmpty ? "Team 1" : _team1Ctrl.text} Bench'),
-          _addButton('+ ADD PLAYER (Team 1 Bench)',
-              () => _addSimplePlayer(_team1Bench, 'Team 1 Bench')),
-          ..._team1Bench
-              .asMap()
-              .entries
-              .map((e) => _simplePlayerCard(e.value, e.key, _team1Bench))
-              .toList(),
+              '${_team1Ctrl.text.isEmpty ? "Team 1" : _team1Ctrl.text} Bench',
+              sectionKey: 't1Bench'),
+          if (_isExpanded('t1Bench')) ...[
+            _addButton('+ ADD PLAYER (Team 1 Bench)',
+                () => _addSimplePlayer(_team1Bench, 'Team 1 Bench')),
+            ..._team1Bench
+                .asMap()
+                .entries
+                .map((e) => _simplePlayerCard(e.value, e.key, _team1Bench))
+                .toList(),
+          ],
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
           _sectionHeader(
-              '${_team2Ctrl.text.isEmpty ? "Team 2" : _team2Ctrl.text} Bench'),
-          _addButton('+ ADD PLAYER (Team 2 Bench)',
-              () => _addSimplePlayer(_team2Bench, 'Team 2 Bench')),
-          ..._team2Bench
-              .asMap()
-              .entries
-              .map((e) => _simplePlayerCard(e.value, e.key, _team2Bench))
-              .toList(),
+              '${_team2Ctrl.text.isEmpty ? "Team 2" : _team2Ctrl.text} Bench',
+              sectionKey: 't2Bench'),
+          if (_isExpanded('t2Bench')) ...[
+            _addButton('+ ADD PLAYER (Team 2 Bench)',
+                () => _addSimplePlayer(_team2Bench, 'Team 2 Bench')),
+            ..._team2Bench
+                .asMap()
+                .entries
+                .map((e) => _simplePlayerCard(e.value, e.key, _team2Bench))
+                .toList(),
+          ],
 
           const Divider(height: 40, thickness: 2),
 
           // ═══════════════════════════════════════════════
-          // ✅ STAFF SECTION
+          // STAFF SECTION
           // ═══════════════════════════════════════════════
           const Text(
             '👔 STAFF',
@@ -626,26 +726,32 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
           const SizedBox(height: 16),
 
           _sectionHeader(
-              '${_team1Ctrl.text.isEmpty ? "Team 1" : _team1Ctrl.text} Staff'),
-          _addButton('+ ADD STAFF (Team 1)',
-              () => _addSimplePlayer(_team1Staff, 'Team 1 Staff')),
-          ..._team1Staff
-              .asMap()
-              .entries
-              .map((e) => _simplePlayerCard(e.value, e.key, _team1Staff))
-              .toList(),
+              '${_team1Ctrl.text.isEmpty ? "Team 1" : _team1Ctrl.text} Staff',
+              sectionKey: 't1Staff'),
+          if (_isExpanded('t1Staff')) ...[
+            _addButton('+ ADD STAFF (Team 1)',
+                () => _addSimplePlayer(_team1Staff, 'Team 1 Staff')),
+            ..._team1Staff
+                .asMap()
+                .entries
+                .map((e) => _simplePlayerCard(e.value, e.key, _team1Staff))
+                .toList(),
+          ],
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
           _sectionHeader(
-              '${_team2Ctrl.text.isEmpty ? "Team 2" : _team2Ctrl.text} Staff'),
-          _addButton('+ ADD STAFF (Team 2)',
-              () => _addSimplePlayer(_team2Staff, 'Team 2 Staff')),
-          ..._team2Staff
-              .asMap()
-              .entries
-              .map((e) => _simplePlayerCard(e.value, e.key, _team2Staff))
-              .toList(),
+              '${_team2Ctrl.text.isEmpty ? "Team 2" : _team2Ctrl.text} Staff',
+              sectionKey: 't2Staff'),
+          if (_isExpanded('t2Staff')) ...[
+            _addButton('+ ADD STAFF (Team 2)',
+                () => _addSimplePlayer(_team2Staff, 'Team 2 Staff')),
+            ..._team2Staff
+                .asMap()
+                .entries
+                .map((e) => _simplePlayerCard(e.value, e.key, _team2Staff))
+                .toList(),
+          ],
 
           const SizedBox(height: 24),
 
@@ -708,15 +814,112 @@ class _UpdateMatchScreenState extends State<UpdateMatchScreen> {
     );
   }
 
-  Widget _sectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10, top: 10),
-      child: Text(title,
-          style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF0A1931))),
+  // ✅ COLLAPSIBLE SECTION HEADER
+  Widget _sectionHeader(String title, {String? sectionKey}) {
+    // Agar sectionKey nahi diya, to purana simple header
+    if (sectionKey == null) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 10, top: 10),
+        child: Text(title,
+            style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0A1931))),
+      );
+    }
+
+    final expanded = _isExpanded(sectionKey);
+    return InkWell(
+      onTap: () => _toggleSection(sectionKey),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 6, top: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0A1931).withOpacity(0.06),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: const Color(0xFF0A1931).withOpacity(0.2),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              expanded
+                  ? Icons.keyboard_arrow_down
+                  : Icons.keyboard_arrow_right,
+              color: const Color(0xFF0A1931),
+              size: 22,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0A1931)),
+              ),
+            ),
+            Text(
+              expanded ? '' : '${_sectionCount(sectionKey)} items',
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey[600],
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
+  }
+
+  // Helper: section mein kitne items hain
+  int _sectionCount(String key) {
+    switch (key) {
+      case 't1Batting':
+        return _team1Batting.length;
+      case 't2Bowling':
+        return _team2Bowling.length;
+      case 't2Batting':
+        return _team2Batting.length;
+      case 't1Bowling':
+        return _team1Bowling.length;
+      case 't1Inn1Batting':
+        return _t1Innings1Batting.length;
+      case 't2Inn1Bowling':
+        return _t2Innings1Bowling.length;
+      case 't2Inn1Batting':
+        return _t2Innings1Batting.length;
+      case 't1Inn1Bowling':
+        return _t1Innings1Bowling.length;
+      case 't1Inn2Batting':
+        return _t1Innings2Batting.length;
+      case 't2Inn2Bowling':
+        return _t2Innings2Bowling.length;
+      case 't2Inn2Batting':
+        return _t2Innings2Batting.length;
+      case 't1Inn2Bowling':
+        return _t1Innings2Bowling.length;
+      case 't1Squad':
+        return _team1Squad.length;
+      case 't2Squad':
+        return _team2Squad.length;
+      case 't1XI':
+        return _team1PlayingXI.length;
+      case 't2XI':
+        return _team2PlayingXI.length;
+      case 't1Bench':
+        return _team1Bench.length;
+      case 't2Bench':
+        return _team2Bench.length;
+      case 't1Staff':
+        return _team1Staff.length;
+      case 't2Staff':
+        return _team2Staff.length;
+      default:
+        return 0;
+    }
   }
 
   Widget _addButton(String label, VoidCallback onTap) {

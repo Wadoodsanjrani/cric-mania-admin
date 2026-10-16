@@ -12,6 +12,7 @@ class SponsorConfig {
   final String fpodSponsorLogoBase64;
   final String fpodSponsorName;
   final String fpodCardTitle;
+  final String leaderboardTitle;
 
   SponsorConfig({
     this.bannerBase64 = '',
@@ -22,6 +23,7 @@ class SponsorConfig {
     this.fpodSponsorLogoBase64 = '',
     this.fpodSponsorName = '',
     this.fpodCardTitle = 'Player of the Day',
+    this.leaderboardTitle = '',
   });
 
   factory SponsorConfig.fromMap(Map<String, dynamic>? map) {
@@ -35,6 +37,7 @@ class SponsorConfig {
       fpodSponsorLogoBase64: map['fpodSponsorLogoBase64'] ?? '',
       fpodSponsorName: map['fpodSponsorName'] ?? '',
       fpodCardTitle: map['fpodCardTitle'] ?? 'Player of the Day',
+      leaderboardTitle: map['leaderboardTitle'] ?? '',
     );
   }
 
@@ -48,6 +51,7 @@ class SponsorConfig {
       'fpodSponsorLogoBase64': fpodSponsorLogoBase64,
       'fpodSponsorName': fpodSponsorName,
       'fpodCardTitle': fpodCardTitle,
+      'leaderboardTitle': leaderboardTitle,
       'updatedAt': Timestamp.fromDate(DateTime.now()),
     };
   }
@@ -181,6 +185,20 @@ class SponsorService {
       {
         'fpodSponsorName': sponsorName,
         'fpodCardTitle': cardTitle,
+        'updatedAt': Timestamp.fromDate(DateTime.now()),
+      },
+      SetOptions(merge: true),
+    );
+  }
+
+  /// Save Leaderboard Title
+  Future<void> saveLeaderboardTitle({
+    required String tournamentId,
+    required String title,
+  }) async {
+    await _configDoc(tournamentId).set(
+      {
+        'leaderboardTitle': title,
         'updatedAt': Timestamp.fromDate(DateTime.now()),
       },
       SetOptions(merge: true),

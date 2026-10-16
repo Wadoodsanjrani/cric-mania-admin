@@ -5,6 +5,8 @@ import 'matches_screen.dart';
 import 'news_screen.dart';
 import 'api_tracker_screen.dart';
 import 'fantasy/fantasy_home_screen.dart';
+import 'icc/icc_rankings_screen.dart';
+import 'players_hub/players_hub_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -49,7 +51,6 @@ class DashboardScreen extends StatelessWidget {
               );
               if (confirm == true) {
                 await FirebaseAuth.instance.signOut();
-                // AuthGate will handle navigation automatically
               }
             },
           ),
@@ -83,6 +84,18 @@ class DashboardScreen extends StatelessWidget {
             '📰 Manage News',
             Icons.newspaper,
             const NewsScreen(),
+          ),
+          _actionTile(
+            context,
+            '📊 Manage ICC Rankings',
+            Icons.leaderboard,
+            const IccRankingsScreen(),
+          ),
+          _actionTile(
+            context,
+            '👤 Manage Players Hub',
+            Icons.person,
+            PlayersHubScreen(),
           ),
           _actionTile(
             context,

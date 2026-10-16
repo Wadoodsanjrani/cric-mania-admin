@@ -165,6 +165,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               style: TextStyle(color: Colors.white),
             ),
             actions: [
+              // Leaderboard Title button
+              IconButton(
+                icon: const Icon(Icons.title, color: Colors.white),
+                tooltip: 'Edit Leaderboard Title',
+                onPressed: () => _editLeaderboardTitle(config),
+              ),
               // Corner Logo button (always visible)
               IconButton(
                 icon: Icon(
@@ -184,6 +190,38 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               ListView(
                 padding: const EdgeInsets.all(12),
                 children: [
+                  // Leaderboard Title display
+                  if (config.leaderboardTitle.isNotEmpty) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 14),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF0A1931), Color(0xFF1B3A5C)],
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.emoji_events,
+                              color: Color(0xFFD4AF37), size: 20),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              config.leaderboardTitle,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   // Banner section
                   _sectionLabel('Sponsor Banner'),
                   const SizedBox(height: 6),
@@ -359,6 +397,74 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _editLeaderboardTitle(SponsorConfig config) {
+    final titleCtrl = TextEditingController(text: config.leaderboardTitle);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Edit Leaderboard Title'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Ye title user app ke leaderboard par sabse upar dikhega.',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: titleCtrl,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Leaderboard Title',
+                  hintText:
+                      'Zero Lifestyle Cricmania Pro League X PSL 12 powered by Tapal Danedar',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Example:\nZero Lifestyle Cricmania Pro League X PSL 12 powered by Tapal Danedar',
+                style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey,
+                    fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0A1931)),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              setState(() => _uploading = true);
+              try {
+                await _sponsorService.saveLeaderboardTitle(
+                  tournamentId: widget.tournamentId,
+                  title: titleCtrl.text.trim(),
+                );
+                _snack('Leaderboard title saved');
+              } catch (e) {
+                _snack('Failed: $e');
+              } finally {
+                if (mounted) setState(() => _uploading = false);
+              }
+            },
+            child: const Text('Save', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
